@@ -1,0 +1,8 @@
+project_id = "dfvyrsmzzwmubckdymtd"
+
+[functions.create-transaction]
+verify_jwt = true
+
+[functions.verify-transaction]
+verify_jwt = false
+

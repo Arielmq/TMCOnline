@@ -1,0 +1,72 @@
+.cloudMining__button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Custom range input styling */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #F7931A; /* Bitcoin color */
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #F7931A;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Image transition styling */
+.cloudMining__image {
+  width: 100%;
+  align-items: center;
+  max-width: 200px; /* Smaller size for multiple machines */
+  height: 160px;
+  margin: 0 auto;
+  transition: opacity 0.4s ease-in-out, filter 0.3s ease, transform 0.4s ease;
+  opacity: 1;
+}
+
+/* Stronger animation for image change */
+.cloudMining__image.changing {
+  animation: imageChange 0.4s ease-in-out;
+}
+
+@keyframes imageChange {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Number input styling */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield; /* Firefox */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Flex container for machines */
+.cloudMining__machine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-items: center;
+  min-width: 200px; /* Ensure machines don't get too cramped */
+}
