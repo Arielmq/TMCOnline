@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { MinerProvider } from "@/context/MinerContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
+import Index from "./pages/Index.jsx";
 import Workers from "./pages/Workers";
 import CloudMining from "./pages/CloudMining";
 import HealthCheck from "./pages/HealthCheck";

@@ -80,7 +80,7 @@ export function MinerApiMonitor() {
 
   if (displayedLocations.every((loc) => loc.panels.every((panel) => panel.miners.length === 0))) {
     return (
-      <Card className="bg-tmcdark-card border-border">
+      <Card  className="bg-tmcdark-card border-border">
         <CardHeader>
           <CardTitle>API de Mineros</CardTitle>
         </CardHeader>
@@ -99,8 +99,8 @@ export function MinerApiMonitor() {
   }
 
   return (
-    <Card className="bg-tmcdark-card border-border">
-      <CardHeader className="pb-2">
+    <Card className="bg-tmcdark-card  overflow-hidden border-border">
+      <CardHeader className="pb-2 ">
         <div className="flex justify-between items-center">
           <CardTitle>API de Mineros</CardTitle>
           <Badge variant="outline" className="text-xs">
@@ -110,8 +110,8 @@ export function MinerApiMonitor() {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <ScrollArea className="max-h-[400px]">
-          <div className="space-y-6">
+        <ScrollArea className="max-h-[400px] overflow-hidden">
+          <div className="max-h-[300px] overflow-auto space-y-4 pr-2">
             {displayedLocations.map((location) => (
               <div key={location.id}>
                 <h2 className="text-lg font-semibold mb-2">{location.name}</h2>

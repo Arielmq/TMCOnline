@@ -9,8 +9,8 @@ export const useMinerStore = create((set) => {
   const initialTimestamp = savedTimestamp || new Date().toISOString();
 
   return {
-    miners: Array.isArray(initialMiners) ? initialMiners : [],
-    timestamp: initialTimestamp,
+    miners: Array.isArray(initialMiners) ? initialMiners : [], // Ensure miners is always an array
+    timestamp: initialTimestamp || new Date().toISOString(), // Ensure timestamp is always a string
     updateMiners: (data) => {
       set((state) => {
         // Clonar el array de mineros existentes

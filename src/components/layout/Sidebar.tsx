@@ -38,12 +38,12 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       <div className="p-4 flex items-center justify-center">
         {isCollapsed ? (
           <div className="w-10 h-10 rounded-full bg-bitcoin flex items-center justify-center text-white font-bold text-xl">
-            T
+            <img src="https://res.cloudinary.com/dd6eoxgul/image/upload/v1747948412/asssd-removebg-preview_qxxqm7.png" alt="" />
           </div>
         ) : (
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-bitcoin flex items-center justify-center text-white font-bold text-xl mr-2">
-              T
+              <img src="https://res.cloudinary.com/dd6eoxgul/image/upload/v1747948412/asssd-removebg-preview_qxxqm7.png" alt="" />
             </div>
             <span className="text-xl font-bold text-white">TMC Watch</span>
           </div>

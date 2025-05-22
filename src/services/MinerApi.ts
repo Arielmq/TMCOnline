@@ -111,5 +111,11 @@ export function useMinerApi() {
     return () => unsubscribe();
   }, []);
 
-  return { data: { miners, timestamp } };
+  // Return a default data object if miners or timestamp are not yet available
+  return {
+    data: {
+      miners: miners || [],
+      timestamp: timestamp || new Date().toISOString(),
+    },
+  };
 }

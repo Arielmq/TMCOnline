@@ -1,0 +1,393 @@
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { useMiner } from "@/context/MinerContext";
+
+import MinerPopup from "../workers/MinerPopup";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import MinerVisualization from "./MinerVisualization";
+import "./Mining3dView.css";
+
+
+
+const Mining3DView = () => {
+  const navigate = useNavigate();
+  const { locations, selectLocation } = useMiner();
+  const [displayedLocations, setDisplayedLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedMiner, setSelectedMiner] = useState(null);
+  const [selectedPanel, setSelectedPanel] = useState(null);
+  const [filter, setFilter] = useState("all");
+
+  // Validate if locations data is usable
+  const isValidLocationsData = (locations) => {
+    return (
+      Array.isArray(locations) &&
+      locations.length > 0 &&
+      locations.every((location) => {
+        if (!location.id || !location.name || !Array.isArray(location.panels)) {
+          console.warn("Invalid location:", location);
+          return false;
+        }
+        return location.panels.every((panel) => {
+          if (!panel.id || !panel.number || !Array.isArray(panel.miners)) {
+            console.warn("Invalid panel:", panel);
+            return false;
+          }
+          // Require only IP for miners, allow partial data
+          return panel.miners.every((miner) => {
+            if (!miner.IP) {
+              console.warn("Invalid miner:", miner);
+              return false;
+            }
+            return true;
+          });
+        });
+      })
+    );
+  };
+
+  // Initialize displayedLocations from localStorage if available
+  useEffect(() => {
+    if (displayedLocations.length === 0) {
+      const savedMiners = localStorage.getItem("miners");
+      if (savedMiners) {
+        try {
+          const parsedMiners = JSON.parse(savedMiners);
+          if (Array.isArray(parsedMiners) && parsedMiners.length > 0) {
+            const fallbackLocations = [
+              {
+                id: "fallback",
+                name: "Default Facility",
+                panels: [
+                  {
+                    id: "panel1",
+                    number: 1,
+                    miners: parsedMiners.map((miner) => ({
+                      IP: miner.ip,
+                      Status: miner.status === "fulfilled" && miner.data?.summary?.hashrateAvg > 0 ? "Running" : "Suspended",
+                      THSRT: miner.data?.summary?.hashrateAvg ? miner.data.summary.hashrateAvg / 1_000_000 : 0,
+                      EnvTemp: miner.data?.summary?.envTemp || 0,
+                      MinerType: miner.data?.minerInfo?.minerType || "Unknown",
+                      RejectRate: miner.data?.pool?.["Pool Rejected%"] || 0,
+                    })),
+                  },
+                ],
+              },
+            ];
+            if (isValidLocationsData(fallbackLocations)) {
+              setDisplayedLocations(fallbackLocations);
+              console.log("Initialized displayedLocations from localStorage:", fallbackLocations);
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing localStorage miners:", error);
+        }
+      }
+    }
+  }, []);
+
+  // Update displayed locations only when complete data is received
+  useEffect(() => {
+    console.log("Received locations from useMiner:", locations);
+    if (isValidLocationsData(locations)) {
+      setDisplayedLocations(locations);
+      console.log("Updated displayedLocations with valid data:", locations);
+    } else {
+      console.warn("Invalid or empty locations data, retaining previous data:", locations);
+    }
+  }, [locations]);
+
+  // Handle location selection
+  const handleLocationSelect = (location) => {
+    setSelectedLocation(location);
+    selectLocation(location.id);
+  };
+
+  // Handle panel click
+  const handlePanelClick = (panel) => {
+    setSelectedPanel(panel);
+  };
+
+  // Close panel view
+  const handleClosePanel = () => {
+    setSelectedPanel(null);
+  };
+
+  // Handle miner click
+  const handleMinerClick = (miner) => {
+    setSelectedMiner(miner);
+  };
+
+  // Get a status color for a miner based on its properties
+  const getMinerStatusColor = (miner) => {
+    if (miner.Status === "Running") {
+      return "bg-white"; // White for running miners
+    }
+    if (miner.THSRT === 0 || miner.Status === "Suspended") {
+      return "bg-[#ea384c]"; // Red for suspended or 0 hashrate miners
+    }
+    // For miners with warning conditions
+    if (
+      miner.RejectRate > 0.1 ||
+      miner.EnvTemp > 45 ||
+      (miner.MinerType?.includes("M30S") && miner.THSRT < 80) ||
+      (miner.MinerType?.includes("M50") && miner.THSRT < 100)
+    ) {
+      return "bg-[#FEF7CD]"; // Soft yellow for warnings
+    }
+
+    return "bg-white"; // Default color for normal operation
+  };
+
+  // Filter miners based on selected filter
+  const filterMiners = (miners) => {
+    if (filter === "all") return miners;
+    if (filter === "online") return miners.filter((miner) => miner.Status === "Running");
+    if (filter === "offline") return miners.filter((miner) => miner.Status !== "Running");
+    return miners;
+  };
+
+  // Count miners by status for a location
+  const countMinersByStatus = (location) => {
+    let online = 0;
+    let offline = 0;
+    let total = 0;
+
+    location.panels.forEach((panel) => {
+      panel.miners.forEach((miner) => {
+        total++;
+        if (miner.Status === "Running") online++;
+        else offline++;
+      });
+    });
+
+    return { online, offline, total };
+  };
+
+  // Count miners by status for a panel
+  const countPanelMinersByStatus = (panel) => {
+    let online = 0;
+    let offline = 0;
+
+    panel.miners.forEach((miner) => {
+      if (miner.Status === "Running") online++;
+      else offline++;
+    });
+
+    return { online, offline, total: panel.miners.length };
+  };
+
+  // If no locations are available, show a placeholder
+  if (displayedLocations.length === 0) {
+    return (
+      <div className="mining3d__panel col-span-2 row-span-2">
+        <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
+        <p className="text-sm text-muted-foreground mb-4">Ubicaciones y paneles</p>
+        <Card className="bg-tmcdark-card border-border p-4">
+          <p className="text-muted-foreground">No mining locations available. Waiting for data...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  // If a panel is selected, show the miners in that panel
+  if (selectedPanel) {
+    const filteredMiners = filterMiners(selectedPanel.miners);
+    const counts = countPanelMinersByStatus(selectedPanel);
+
+    return (
+      <div className="col-span-3 row-span-2">
+        <div className="flex justify-between items-center mb-4">
+          <h3 style={{ display: "none" }} className="text-lg font-medium">
+            Panel #{selectedPanel.number} - {filteredMiners.length} Miners
+          </h3>
+          <div className="flex gap-2">
+            <Button
+              variant={filter === "online" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("online")}
+            >
+              Online ({counts.online})
+            </Button>
+            <Button
+              variant={filter === "offline" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("offline")}
+            >
+              Offline ({counts.offline})
+            </Button>
+            <Button
+              variant={filter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("all")}
+            >
+              Todas ({counts.total})
+            </Button>
+            <Button variant="ghost" onClick={handleClosePanel}>
+              <X className="h-5 w-5 mr-2" />
+              Close
+            </Button>
+          </div>
+        </div>
+        <Card className="bg-tmcdark-card border-border p-4">
+          <ScrollArea>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 p-4">
+              {filteredMiners.map((miner) => (
+                <div
+                  key={miner.IP}
+                  className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
+                  onClick={() => handleMinerClick(miner)}
+                >
+                  <MinerVisualization miner={miner} />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        {/* Miner Popup */}
+        <MinerPopup
+          miner={selectedMiner}
+          open={!!selectedMiner}
+          onClose={() => setSelectedMiner(null)}
+        />
+      </div>
+    );
+  }
+
+  // Standard view showing locations and panels
+  return (
+    <div className="mining3d__panel col-span-2 row-span-2">
+      <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
+      <p className="text-sm text-muted-foreground mb-4">Ubicaciones y paneles</p>
+      <Card className="bg-tmcdark-card border-border p-4">
+        {/* Location Tabs */}
+        <Tabs defaultValue={displayedLocations[0]?.id} className="w-full h-full flex flex-col">
+          <TabsList className="grid grid-cols-4 mb-4">
+            {displayedLocations.map((location) => {
+              const counts = countMinersByStatus(location);
+
+              return (
+                <TabsTrigger
+                  key={location.id}
+                  value={location.id}
+                  onClick={() => handleLocationSelect(location)}
+                  className="text-sm"
+                >
+                  {location.name}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {/* Content for each location */}
+          {displayedLocations.map((location) => {
+            const counts = countMinersByStatus(location);
+
+            return (
+              <TabsContent
+                key={location.id}
+                value={location.id}
+                className="flex-1 overflow-visible min-h-0"
+              >
+                <ScrollArea className="h-fit w-full pr-4 overflow-visible">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-md font-medium">{location.name} - Paneles</h4>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={filter === "online" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setFilter("online")}
+                        >
+                          Online ({counts.online})
+                        </Button>
+                        <Button
+                          variant={filter === "offline" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setFilter("offline")}
+                        >
+                          Offline ({counts.offline})
+                        </Button>
+                        <Button
+                          variant={filter === "all" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setFilter("all")}
+                        >
+                          Todas ({counts.total})
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {location.panels.map((panel) => {
+                        const filteredMiners = filterMiners(panel.miners);
+
+                        // Skip panels with no miners after filtering
+                        if (filteredMiners.length === 0 && filter !== "all") {
+                          return null;
+                        }
+
+                        return (
+                          <div
+                            key={panel.id}
+                            className="mining3DView border border-gray-700 rounded-md p-3 cursor-pointer hover:bg-tmcdark-lighter transition-colors aspect-square"
+                            onClick={() => handlePanelClick(panel)}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <h5 className="text-sm font-medium">Panel #{panel.number}</h5>
+                              <span className="text-xs text-muted-foreground">
+                                {filteredMiners.length} Mineros
+                              </span>
+                            </div>
+
+                            {/* Grid of miners - square layout */}
+                            <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
+                              <div className="grid grid-cols-10 grid-rows-6 gap-[2px] h-full">
+                                {Array.from({ length: 60 }).map((_, index) => {
+                                  const miner = panel.miners[index];
+                                  const shouldShow = miner && filterMiners([miner]).length > 0;
+
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`w-full aspect-square min-h-[8px] rounded-sm border border-gray-700 ${
+                                        shouldShow ? getMinerStatusColor(miner) : "bg-white/10"
+                                      }`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (miner && shouldShow) handleMinerClick(miner);
+                                      }}
+                                      title={miner && shouldShow ? `${miner.IP} - ${miner.MinerType}` : "Empty Slot"}
+                                    ></div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+      </Card>
+
+      {/* Miner Popup */}
+      <MinerPopup
+        miner={selectedMiner}
+        open={!!selectedMiner}
+        onClose={() => setSelectedMiner(null)}
+      />
+    </div>
+  );
+};
+
+export default Mining3DView;
