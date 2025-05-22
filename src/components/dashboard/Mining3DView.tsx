@@ -1,8 +1,9 @@
+// src/components/dashboard/Mining3DView.jsx
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useMiner } from "@/context/MinerContext";
-
+import { MinerData, LocationData, PanelData } from "@/types/miner";
 import MinerPopup from "../workers/MinerPopup";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,104 +12,64 @@ import { X } from "lucide-react";
 import MinerVisualization from "./MinerVisualization";
 import "./Mining3dView.css";
 
-
+type FilterType = "all" | "online" | "offline";
 
 const Mining3DView = () => {
   const navigate = useNavigate();
   const { locations, selectLocation } = useMiner();
-  const [displayedLocations, setDisplayedLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [selectedMiner, setSelectedMiner] = useState(null);
-  const [selectedPanel, setSelectedPanel] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [displayedLocations, setDisplayedLocations] = useState<LocationData[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [selectedMiner, setSelectedMiner] = useState<MinerData | null>(null);
+  const [selectedPanel, setSelectedPanel] = useState<PanelData | null>(null);
+  const [filter, setFilter] = useState<FilterType>("all");
 
-  // Validate if locations data is usable
-  const isValidLocationsData = (locations) => {
+  // Validate if locations data is complete
+  const isValidLocationsData = (locations: LocationData[]): boolean => {
     return (
       Array.isArray(locations) &&
       locations.length > 0 &&
-      locations.every((location) => {
-        if (!location.id || !location.name || !Array.isArray(location.panels)) {
-          console.warn("Invalid location:", location);
-          return false;
-        }
-        return location.panels.every((panel) => {
-          if (!panel.id || !panel.number || !Array.isArray(panel.miners)) {
-            console.warn("Invalid panel:", panel);
-            return false;
-          }
-          // Require only IP for miners, allow partial data
-          return panel.miners.every((miner) => {
-            if (!miner.IP) {
-              console.warn("Invalid miner:", miner);
-              return false;
-            }
-            return true;
-          });
-        });
-      })
+      locations.every(
+        (location) =>
+          location.id &&
+          location.name &&
+          Array.isArray(location.panels) &&
+          location.panels.every(
+            (panel) =>
+              panel.id &&
+              panel.number &&
+              Array.isArray(panel.miners) &&
+              panel.miners.every(
+                (miner) =>
+                  miner.IP &&
+                  miner.Status &&
+                  typeof miner.THSRT === "number" &&
+                  typeof miner.EnvTemp === "number" &&
+                  miner.MinerType
+              )
+          )
+      )
     );
   };
 
-  // Initialize displayedLocations from localStorage if available
-  useEffect(() => {
-    if (displayedLocations.length === 0) {
-      const savedMiners = localStorage.getItem("miners");
-      if (savedMiners) {
-        try {
-          const parsedMiners = JSON.parse(savedMiners);
-          if (Array.isArray(parsedMiners) && parsedMiners.length > 0) {
-            const fallbackLocations = [
-              {
-                id: "fallback",
-                name: "Default Facility",
-                panels: [
-                  {
-                    id: "panel1",
-                    number: 1,
-                    miners: parsedMiners.map((miner) => ({
-                      IP: miner.ip,
-                      Status: miner.status === "fulfilled" && miner.data?.summary?.hashrateAvg > 0 ? "Running" : "Suspended",
-                      THSRT: miner.data?.summary?.hashrateAvg ? miner.data.summary.hashrateAvg / 1_000_000 : 0,
-                      EnvTemp: miner.data?.summary?.envTemp || 0,
-                      MinerType: miner.data?.minerInfo?.minerType || "Unknown",
-                      RejectRate: miner.data?.pool?.["Pool Rejected%"] || 0,
-                    })),
-                  },
-                ],
-              },
-            ];
-            if (isValidLocationsData(fallbackLocations)) {
-              setDisplayedLocations(fallbackLocations);
-              console.log("Initialized displayedLocations from localStorage:", fallbackLocations);
-            }
-          }
-        } catch (error) {
-          console.error("Error parsing localStorage miners:", error);
-        }
-      }
-    }
-  }, []);
-
   // Update displayed locations only when complete data is received
   useEffect(() => {
-    console.log("Received locations from useMiner:", locations);
+    console.log("Received locations:", locations); // Debug: Log incoming data
     if (isValidLocationsData(locations)) {
       setDisplayedLocations(locations);
-      console.log("Updated displayedLocations with valid data:", locations);
+      console.log("Updated displayedLocations with complete data:", locations);
     } else {
-      console.warn("Invalid or empty locations data, retaining previous data:", locations);
+      console.warn("Incomplete or invalid locations data, retaining previous data:", locations);
     }
   }, [locations]);
 
   // Handle location selection
-  const handleLocationSelect = (location) => {
+  const handleLocationSelect = (location: LocationData) => {
     setSelectedLocation(location);
     selectLocation(location.id);
   };
 
   // Handle panel click
-  const handlePanelClick = (panel) => {
+  const handlePanelClick = (panel: PanelData) => {
     setSelectedPanel(panel);
   };
 
@@ -118,12 +79,12 @@ const Mining3DView = () => {
   };
 
   // Handle miner click
-  const handleMinerClick = (miner) => {
+  const handleMinerClick = (miner: MinerData) => {
     setSelectedMiner(miner);
   };
 
   // Get a status color for a miner based on its properties
-  const getMinerStatusColor = (miner) => {
+  const getMinerStatusColor = (miner: MinerData) => {
     if (miner.Status === "Running") {
       return "bg-white"; // White for running miners
     }
@@ -134,8 +95,8 @@ const Mining3DView = () => {
     if (
       miner.RejectRate > 0.1 ||
       miner.EnvTemp > 45 ||
-      (miner.MinerType?.includes("M30S") && miner.THSRT < 80) ||
-      (miner.MinerType?.includes("M50") && miner.THSRT < 100)
+      (miner.MinerType.includes("M30S") && miner.THSRT < 80) ||
+      (miner.MinerType.includes("M50") && miner.THSRT < 100)
     ) {
       return "bg-[#FEF7CD]"; // Soft yellow for warnings
     }
@@ -144,15 +105,22 @@ const Mining3DView = () => {
   };
 
   // Filter miners based on selected filter
-  const filterMiners = (miners) => {
+  const filterMiners = (miners: MinerData[]): MinerData[] => {
     if (filter === "all") return miners;
-    if (filter === "online") return miners.filter((miner) => miner.Status === "Running");
-    if (filter === "offline") return miners.filter((miner) => miner.Status !== "Running");
+
+    if (filter === "online") {
+      return miners.filter((miner) => miner.Status === "Running");
+    }
+
+    if (filter === "offline") {
+      return miners.filter((miner) => miner.Status !== "Running");
+    }
+
     return miners;
   };
 
   // Count miners by status for a location
-  const countMinersByStatus = (location) => {
+  const countMinersByStatus = (location: LocationData) => {
     let online = 0;
     let offline = 0;
     let total = 0;
@@ -160,8 +128,11 @@ const Mining3DView = () => {
     location.panels.forEach((panel) => {
       panel.miners.forEach((miner) => {
         total++;
-        if (miner.Status === "Running") online++;
-        else offline++;
+        if (miner.Status === "Running") {
+          online++;
+        } else {
+          offline++;
+        }
       });
     });
 
@@ -169,30 +140,20 @@ const Mining3DView = () => {
   };
 
   // Count miners by status for a panel
-  const countPanelMinersByStatus = (panel) => {
+  const countPanelMinersByStatus = (panel: PanelData) => {
     let online = 0;
     let offline = 0;
 
     panel.miners.forEach((miner) => {
-      if (miner.Status === "Running") online++;
-      else offline++;
+      if (miner.Status === "Running") {
+        online++;
+      } else {
+        offline++;
+      }
     });
 
     return { online, offline, total: panel.miners.length };
   };
-
-  // If no locations are available, show a placeholder
-  if (displayedLocations.length === 0) {
-    return (
-      <div className="mining3d__panel col-span-2 row-span-2">
-        <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
-        <p className="text-sm text-muted-foreground mb-4">Ubicaciones y paneles</p>
-        <Card className="bg-tmcdark-card border-border p-4">
-          <p className="text-muted-foreground">No mining locations available. Waiting for data...</p>
-        </Card>
-      </div>
-    );
-  }
 
   // If a panel is selected, show the miners in that panel
   if (selectedPanel) {
