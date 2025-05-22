@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useMinerStore } from '@/store/minerStore';
 
 // URL del servidor WebSocket
-const WS_URL = 'wss://f3b6-138-84-54-223.ngrok-free.app';
+const WS_URL = 'wss://550e-138-84-54-223.ngrok-free.app';
 let socket: WebSocket | null = null;
 let reconnectInterval = 5000; // Tiempo de reconexión inicial (5 segundos)
 const maxReconnectInterval = 50000; // Máximo tiempo de reconexión (50 segundos)
