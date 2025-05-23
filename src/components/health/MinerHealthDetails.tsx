@@ -100,10 +100,10 @@ const MinerHealthDetails = ({ minerInfo, open, onClose }: MinerHealthDetailsProp
             {issues.includes("Sobrecalentamiento crítico") && (
               <p className="text-sm">Apagar el minero inmediatamente y revisar el sistema de enfriamiento.</p>
             )}
-            {issues.includes("Temperatura elevada") && (
+            {issues.includes("High") && (
               <p className="text-sm">Mejorar la ventilación y verificar el sistema de refrigeración.</p>
             )}
-            {issues.includes("Bajo Hashrate") && (
+            {issues.includes("Low Hashrate") && (
               <p className="text-sm">Verificar las conexiones y considerar un reinicio del dispositivo.</p>
             )}
           </div>

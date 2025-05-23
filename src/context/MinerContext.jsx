@@ -1,13 +1,14 @@
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useMinerApi } from '@/hooks/useMinerApi';
 
 // Mapeo de letras a ubicaciones
 const locationMap = {
-  Z: 'zacatelco',
-  A: 'apizaco',
-  T: 'tlaxcala',
-  H: 'huamantla',
+  Z: 'za',
+  A: 'ap',
+  T: 'tx',
+  H: 'hu',
 };
 
 // Mapeo de letras a paneles
@@ -22,43 +23,43 @@ const panelMap = {
 const createEmptyLocations = () => {
   const locations = [
     {
-      id: 'zacatelco',
-      name: 'Zacatelco',
+      id: 'za',
+      name: 'Za',
       panels: [
-        { id: 'zacatelco-panel-a', number: 'A', miners: [] },
-        { id: 'zacatelco-panel-b', number: 'B', miners: [] },
-        { id: 'zacatelco-panel-c', number: 'C', miners: [] },
-        { id: 'zacatelco-panel-d', number: 'D', miners: [] },
+        { id: 'za-panel-a', number: 'A', miners: [] },
+        { id: 'za-panel-b', number: 'B', miners: [] },
+        { id: 'za-panel-c', number: 'C', miners: [] },
+        { id: 'za-panel-d', number: 'D', miners: [] },
       ],
     },
     {
-      id: 'apizaco',
-      name: 'Apizaco',
+      id: 'ap',
+      name: 'Ap',
       panels: [
-        { id: 'apizaco-panel-a', number: 'A', miners: [] },
-        { id: 'apizaco-panel-b', number: 'B', miners: [] },
-        { id: 'apizaco-panel-c', number: 'C', miners: [] },
-        { id: 'apizaco-panel-d', number: 'D', miners: [] },
+        { id: 'ap-panel-a', number: 'A', miners: [] },
+        { id: 'ap-panel-b', number: 'B', miners: [] },
+        { id: 'ap-panel-c', number: 'C', miners: [] },
+        { id: 'ap-panel-d', number: 'D', miners: [] },
       ],
     },
     {
-      id: 'tlaxcala',
-      name: 'Tlaxcala',
+      id: 'tx',
+      name: 'Tx',
       panels: [
-        { id: 'tlaxcala-panel-a', number: 'A', miners: [] },
-        { id: 'tlaxcala-panel-b', number: 'B', miners: [] },
-        { id: 'tlaxcala-panel-c', number: 'C', miners: [] },
-        { id: 'tlaxcala-panel-d', number: 'D', miners: [] },
+        { id: 'tx-panel-a', number: 'A', miners: [] },
+        { id: 'tx-panel-b', number: 'B', miners: [] },
+        { id: 'tx-panel-c', number: 'C', miners: [] },
+        { id: 'tx-panel-d', number: 'D', miners: [] },
       ],
     },
     {
-      id: 'huamantla',
-      name: 'Huamantla',
+      id: 'hu',
+      name: 'Hu',
       panels: [
-        { id: 'huamantla-panel-a', number: 'A', miners: [] },
-        { id: 'huamantla-panel-b', number: 'B', miners: [] },
-        { id: 'huamantla-panel-c', number: 'C', miners: [] },
-        { id: 'huamantla-panel-d', number: 'D', miners: [] },
+        { id: 'hu-panel-a', number: 'A', miners: [] },
+        { id: 'hu-panel-b', number: 'B', miners: [] },
+        { id: 'hu-panel-c', number: 'C', miners: [] },
+        { id: 'hu-panel-d', number: 'D', miners: [] },
       ],
     },
   ];
@@ -93,7 +94,7 @@ export const MinerProvider = ({ children }) => {
             .map((miner, index) => {
               const worker = miner.data?.pool?.worker || '';
               const parsed = worker ? parseWorker(worker) : {
-                location: 'zacatelco',
+                location: 'za',
                 panel: 'panel-a',
                 slot: index + 1
               };
@@ -141,7 +142,7 @@ export const MinerProvider = ({ children }) => {
             });
 
           convertedMiners.forEach((miner) => {
-            const locationId = miner.location || 'zacatelco';
+            const locationId = miner.location || 'za';
             const panelId = miner.panel ? `${locationId}-${miner.panel}` : `${locationId}-panel-a`;
             const slot = miner.slot || convertedMiners.indexOf(miner) + 1;
 
@@ -242,7 +243,7 @@ export const MinerProvider = ({ children }) => {
       const worker = minerData.pool?.worker || '';
       console.log(`Processing miner ${apiMiner.ip}, worker: ${worker}`); // Debug worker
       const parsed = worker ? parseWorker(worker) : {
-        location: 'zacatelco',
+        location: 'za',
         panel: 'panel-a',
         slot: index + 1
       };
@@ -293,7 +294,7 @@ export const MinerProvider = ({ children }) => {
         Pool3: '',
         Worker2: '',
         Worker3: '',
-        location: parsed?.location || 'zacatelco',
+        location: parsed?.location || 'za',
         panel: parsed?.panel || 'panel-a',
         slot: parsed?.slot || index + 1,
       };
@@ -312,7 +313,7 @@ export const MinerProvider = ({ children }) => {
 
     // Assign miners to locations and panels
     convertedMiners.forEach((miner) => {
-      const locationId = miner.location || 'zacatelco';
+      const locationId = miner.location || 'za';
       const panelId = miner.panel ? `${locationId}-${miner.panel}` : `${locationId}-panel-a`;
       const slot = miner.slot || convertedMiners.indexOf(miner) + 1;
 
@@ -352,9 +353,9 @@ export const MinerProvider = ({ children }) => {
 
     const totalMiners = convertedMiners.length;
     if (totalMiners > 0) {
-      toast.success(`Conectado a ${totalMiners} mineros`);
+      toast.success(`Connected to ${totalMiners} miners`);
     } else {
-      toast.warning('No se encontraron mineros con datos válidos');
+      toast.warning('No valid miners found');
     }
   }, [minerApiData]);
 
@@ -386,10 +387,10 @@ export const MinerProvider = ({ children }) => {
   const uploadCSV = async (file) => {
     try {
       const text = await file.text();
-      toast.success('Archivo CSV cargado correctamente');
+      toast.success('CSV file uploaded successfully');
     } catch (error) {
-      console.error('Error al cargar el archivo CSV:', error);
-      toast.error('Error al cargar el archivo CSV');
+      console.error('Error uploading CSV file:', error);
+      toast.error('Error uploading CSV file');
     }
   };
 
