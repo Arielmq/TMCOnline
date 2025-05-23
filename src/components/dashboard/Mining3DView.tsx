@@ -309,24 +309,32 @@ const Mining3DView = () => {
                             {/* Grid of miners - square layout */}
                             <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
                               <div className="grid grid-cols-10 grid-rows-6 gap-[2px] h-full">
-                                {Array.from({ length: 60 }).map((_, index) => {
-                                  const miner = panel.miners[index];
-                                  const shouldShow = miner && filterMiners([miner]).length > 0;
+                            {Array.from({ length: 60 }).map((_, index) => {
+  const miner = panel.miners[index];
+  const shouldShow = miner && filterMiners([miner]).length > 0;
 
-                                  return (
-                                    <div
-                                      key={index}
-                                      className={`w-full aspect-square min-h-[8px] rounded-sm border border-gray-700 ${
-                                        shouldShow ? getMinerStatusColor(miner) : "bg-white/10"
-                                      }`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (miner && shouldShow) handleMinerClick(miner);
-                                      }}
-                                      title={miner && shouldShow ? `${miner.IP} - ${miner.MinerType}` : "Empty Slot"}
-                                    ></div>
-                                  );
-                                })}
+  return (
+    <div
+      key={index}
+      onClick={e => {
+        e.stopPropagation();
+        if (miner && shouldShow) handleMinerClick(miner);
+      }}
+      title={shouldShow ? `${miner.IP} – ${miner.MinerType}` : 'Empty Slot'}
+      className={`
+        w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
+        ${ shouldShow ? getMinerStatusColor(miner!) : 'bg-white/10' }
+        flex items-center justify-center
+      `}
+    >
+      {shouldShow && (
+        <span className="text-2xl font-bold text-[red] leading-none">
+          {Math.round(miner.THSRT)}
+        </span>
+      )}
+    </div>
+  );
+})}
                               </div>
                             </div>
                           </div>
