@@ -27,7 +27,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   const [version] = useState("v1.0.0");
 
   const navItems: NavItem[] = [
-    { title: "Dashboard",    icon: LayoutDashboard, path: "/" },
+    { title: "Dashboard",    icon: LayoutDashboard, path: "/app" },
     { title: "Workers",      icon: Cpu,             path: "/workers" },
     { title: "Cloud Mining", icon: Cloud,           path: "/cloud-mining" },
     { title: "Health Check", icon: Activity,        path: "/health-check" },
