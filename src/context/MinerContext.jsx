@@ -352,11 +352,7 @@ export const MinerProvider = ({ children }) => {
     console.log('Updated locations with complete data:', newLocations);
 
     const totalMiners = convertedMiners.length;
-    if (totalMiners > 0) {
-      toast.success(`Connected to ${totalMiners} miners`);
-    } else {
-      toast.warning('No valid miners found');
-    }
+ 
   }, [minerApiData]);
 
   const selectLocation = (locationId) => {
