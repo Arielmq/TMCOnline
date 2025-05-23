@@ -12,7 +12,7 @@ const FinalCTA = () => {
         </h2>
         
         <div className="final-cta__actions animate">
-          <a href="/IndexApp" target="_blank" rel="noopener noreferrer" className="button button--primary final-cta__button">
+          <a href="/app" target="_blank" rel="noopener noreferrer" className="button button--primary final-cta__button">
             Access Platform
           </a>
         </div>

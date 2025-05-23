@@ -30,9 +30,9 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
+              <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-              <Route path="/indexApp" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/workers" element={<ProtectedRoute><Workers /></ProtectedRoute>} />
               <Route path="/cloud-mining" element={<ProtectedRoute><CloudMining /></ProtectedRoute>} />
               <Route path="/health-check" element={<ProtectedRoute><HealthCheck /></ProtectedRoute>} />

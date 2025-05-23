@@ -42,7 +42,7 @@ const Navbar = () => {
             <li className="navbar__item"><a href="#ecosystem" className="navbar__link">Ecosystem</a></li>
             <li className="navbar__item"><a href="#roadmap" className="navbar__link">Roadmap</a></li>
             <li className="navbar__item navbar__item--cta">
-              <a href="/IndexApp" target="_blank" rel="noopener noreferrer" className="button button--primary">
+              <a href="/app" target="_blank" rel="noopener noreferrer" className="button button--primary">
                 Access Platform
               </a>
             </li>
