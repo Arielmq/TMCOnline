@@ -1,4 +1,3 @@
-// src/components/dashboard/Mining3DView.jsx
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -161,7 +160,7 @@ const Mining3DView = () => {
               size="sm"
               onClick={() => setFilter("all")}
             >
-              Todas ({counts.total})
+              All ({counts.total})
             </Button>
             <Button variant="ghost" onClick={handleClosePanel}>
               <X className="h-5 w-5 mr-2" />
@@ -198,7 +197,7 @@ const Mining3DView = () => {
   return (
     <div className="mining3d__panel col-span-2 row-span-2">
       <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
-      <p className="text-sm text-muted-foreground mb-4">Ubicaciones y paneles</p>
+      <p className="text-sm text-muted-foreground mb-4">Locations and panels</p>
       <Card className="bg-tmcdark-card border-border p-4">
         <Tabs defaultValue={displayedLocations[0]?.id} className="w-full h-full flex flex-col">
           <TabsList className="grid grid-cols-4 mb-4">
@@ -230,7 +229,7 @@ const Mining3DView = () => {
                 <ScrollArea className="h-fit w-full pr-4 overflow-visible">
                   <div className="grid grid-cols-1 gap-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-md font-medium">{location.name} - Paneles</h4>
+                      <h4 className="text-md font-medium">{location.name} - Panels</h4>
                       <div className="flex gap-2">
                         <Button
                           variant={filter === "online" ? "default" : "outline"}
@@ -244,7 +243,7 @@ const Mining3DView = () => {
                           size="sm"
                           onClick={() => setFilter("all")}
                         >
-                          Todas ({counts.total})
+                          All ({counts.total})
                         </Button>
                       </div>
                     </div>
@@ -267,7 +266,7 @@ const Mining3DView = () => {
                             <div className="flex justify-between items-center mb-2">
                               <h5 className="text-sm font-medium">Panel #{panel.number}</h5>
                               <span className="text-xs text-muted-foreground">
-                                {filteredMiners.length} Mineros
+                                {filteredMiners.length} Miners
                               </span>
                             </div>
 
@@ -311,7 +310,7 @@ const Mining3DView = () => {
                                     >
                                       {hasValidMiner && (
                                         <span
-                                          className={`text-2xl font-bold leading-none ${textClass}`}
+                                          className={`text-lg xl:text-2xl font-bold leading-none mining3d__span ${textClass}`}
                                           style={{ textShadow: shadow }}
                                         >
                                           {thsValue}
