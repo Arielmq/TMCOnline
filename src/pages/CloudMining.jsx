@@ -248,24 +248,35 @@ const CloudMining = () => {
   };
 
   if (loading) {
-    return <div>Cargando...</div>;
+    return   <div className="flex flex-col items-center justify-center min-h-screen">
+  <h1 className="text-2xl font-bold mb-6">Cloud-Mining</h1>
+  <div
+    className="w-24 h-24 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+    aria-label="Loading spinner"
+  />
+</div>
   }
 
   return (
     <MainLayout>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Cloud Mining</h1>
-          <p className="text-muted-foreground">Administra tus contratos de minería en la nube</p>
-        </div>
-        {confirmedContracts.length > 0 && (
-          <div className="text-sm text-gray-300">
-            <strong>Tiempo Restante:</strong>{" "}
-            {calculateRemainingDays(confirmedContracts[confirmedContracts.length - 1].purchase_date)} días
-          </div>
-        )}
+<div style={{margin:"0 auto"}} className="mb-6 flex justify-center items-center">
+  <div style={{marginTop:"100px"}} className="flex flex-col items-center text-center">
+    <img
+      src="https://res.cloudinary.com/dllkefj8m/image/upload/v1747763348/miners-empty_qbiray.png"
+      alt="Cloud Mining"
+      className="mb-2"
+    />
+    <h1 style={{fontSize:"40px",marginTop:"10px"}} className="text-2xl font-bold">Cloud Mining</h1>
+    <p style={{marginTop:"100px"}} className="text-muted-foreground">SOON...</p>
+    {confirmedContracts.length > 0 && (
+      <div className="text-sm text-gray-300 mt-2">
+        <strong>Tiempo Restante:</strong>{" "}
+        {calculateRemainingDays(confirmedContracts[confirmedContracts.length - 1].purchase_date)} días
       </div>
-      <div className="border border-border rounded-lg p-8 flex flex-col items-center justify-center h-[60vh]">
+    )}
+  </div>
+</div>
+    {/*   <div className="border border-border rounded-lg p-8 flex flex-col items-center justify-center h-[60vh]">
         {confirmedContracts.length > 0 ? (
           <div className="flex flex-wrap justify-center gap-6">
             {confirmedContracts.map((contract, index) => (
@@ -399,6 +410,7 @@ const CloudMining = () => {
           </div>
         </div>
       )}
+        */}
     </MainLayout>
   );
 };

@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// TMC Watch custom colors
+				// Hashira AI custom colors
 				bitcoin: {
 					DEFAULT: '#F7931A', // Bitcoin orange
 					hover: '#E87D0D',

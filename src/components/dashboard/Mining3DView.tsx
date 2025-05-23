@@ -12,7 +12,7 @@ import { X } from "lucide-react";
 import MinerVisualization from "./MinerVisualization";
 import "./Mining3dView.css";
 
-type FilterType = "all" | "online" | "offline";
+type FilterType = "all" | "online";
 
 const Mining3DView = () => {
   const navigate = useNavigate();
@@ -37,15 +37,7 @@ const Mining3DView = () => {
             (panel) =>
               panel.id &&
               panel.number &&
-              Array.isArray(panel.miners) &&
-              panel.miners.every(
-                (miner) =>
-                  miner.IP &&
-                  miner.Status &&
-                  typeof miner.THSRT === "number" &&
-                  typeof miner.EnvTemp === "number" &&
-                  miner.MinerType
-              )
+              Array.isArray(panel.miners)
           )
       )
     );
@@ -53,7 +45,7 @@ const Mining3DView = () => {
 
   // Update displayed locations only when complete data is received
   useEffect(() => {
-    console.log("Received locations:", locations); // Debug: Log incoming data
+    console.log("Received locations:", locations);
     if (isValidLocationsData(locations)) {
       setDisplayedLocations(locations);
       console.log("Updated displayedLocations with complete data:", locations);
@@ -85,74 +77,64 @@ const Mining3DView = () => {
 
   // Get a status color for a miner based on its properties
   const getMinerStatusColor = (miner: MinerData) => {
-    if (miner.Status === "Running") {
-      return "bg-white"; // White for running miners
+    if (miner.THSRT === 0) {
+      return "bg-[#ea384c]";
     }
-    if (miner.THSRT === 0 || miner.Status === "Suspended") {
-      return "bg-[#ea384c]"; // Red for suspended or 0 hashrate miners
-    }
-    // For miners with warning conditions
     if (
       miner.RejectRate > 0.1 ||
       miner.EnvTemp > 45 ||
       (miner.MinerType.includes("M30S") && miner.THSRT < 80) ||
       (miner.MinerType.includes("M50") && miner.THSRT < 100)
     ) {
-      return "bg-[#FEF7CD]"; // Soft yellow for warnings
+      return "bg-[#FEF7CD]";
     }
+    return "bg-white";
+  };
 
-    return "bg-white"; // Default color for normal operation
+  const getTHSRTextColor = (ths: number) => {
+    if (ths <= 80) return 'text-yellow-500';
+    return 'text-green-500';
   };
 
   // Filter miners based on selected filter
   const filterMiners = (miners: MinerData[]): MinerData[] => {
-    if (filter === "all") return miners;
-
+    if (filter === "all") return miners.filter(miner => miner.THSRT > 0);
     if (filter === "online") {
-      return miners.filter((miner) => miner.Status === "Running");
+      return miners.filter((miner) => miner.THSRT > 0); // Mostrar todos los mineros con THSRT > 0
     }
-
-    if (filter === "offline") {
-      return miners.filter((miner) => miner.Status !== "Running");
-    }
-
-    return miners;
+    return miners.filter(miner => miner.THSRT > 0);
   };
 
   // Count miners by status for a location
   const countMinersByStatus = (location: LocationData) => {
     let online = 0;
-    let offline = 0;
     let total = 0;
 
     location.panels.forEach((panel) => {
       panel.miners.forEach((miner) => {
-        total++;
-        if (miner.Status === "Running") {
-          online++;
-        } else {
-          offline++;
+        if (miner.THSRT > 0) {
+          total++;
+          online++; // Todos los mineros con THSRT > 0 se consideran "online"
         }
       });
     });
 
-    return { online, offline, total };
+    return { online, total };
   };
 
   // Count miners by status for a panel
   const countPanelMinersByStatus = (panel: PanelData) => {
     let online = 0;
-    let offline = 0;
+    let total = 0;
 
     panel.miners.forEach((miner) => {
-      if (miner.Status === "Running") {
-        online++;
-      } else {
-        offline++;
+      if (miner.THSRT > 0) {
+        total++;
+        online++; // Todos los mineros con THSRT > 0 se consideran "online"
       }
     });
 
-    return { online, offline, total: panel.miners.length };
+    return { online, total };
   };
 
   // If a panel is selected, show the miners in that panel
@@ -173,13 +155,6 @@ const Mining3DView = () => {
               onClick={() => setFilter("online")}
             >
               Online ({counts.online})
-            </Button>
-            <Button
-              variant={filter === "offline" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("offline")}
-            >
-              Offline ({counts.offline})
             </Button>
             <Button
               variant={filter === "all" ? "default" : "outline"}
@@ -210,7 +185,6 @@ const Mining3DView = () => {
           </ScrollArea>
         </Card>
 
-        {/* Miner Popup */}
         <MinerPopup
           miner={selectedMiner}
           open={!!selectedMiner}
@@ -226,7 +200,6 @@ const Mining3DView = () => {
       <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
       <p className="text-sm text-muted-foreground mb-4">Ubicaciones y paneles</p>
       <Card className="bg-tmcdark-card border-border p-4">
-        {/* Location Tabs */}
         <Tabs defaultValue={displayedLocations[0]?.id} className="w-full h-full flex flex-col">
           <TabsList className="grid grid-cols-4 mb-4">
             {displayedLocations.map((location) => {
@@ -245,7 +218,6 @@ const Mining3DView = () => {
             })}
           </TabsList>
 
-          {/* Content for each location */}
           {displayedLocations.map((location) => {
             const counts = countMinersByStatus(location);
 
@@ -266,13 +238,6 @@ const Mining3DView = () => {
                           onClick={() => setFilter("online")}
                         >
                           Online ({counts.online})
-                        </Button>
-                        <Button
-                          variant={filter === "offline" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setFilter("offline")}
-                        >
-                          Offline ({counts.offline})
                         </Button>
                         <Button
                           variant={filter === "all" ? "default" : "outline"}
@@ -306,35 +271,55 @@ const Mining3DView = () => {
                               </span>
                             </div>
 
-                            {/* Grid of miners - square layout */}
                             <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
                               <div className="grid grid-cols-10 grid-rows-6 gap-[2px] h-full">
-                            {Array.from({ length: 60 }).map((_, index) => {
-  const miner = panel.miners[index];
-  const shouldShow = miner && filterMiners([miner]).length > 0;
+                                {Array.from({ length: 60 }).map((_, index) => {
+                                  const miner = panel.miners[index];
+                                  const hasValidMiner = !!miner && filterMiners([miner]).length > 0;
 
-  return (
-    <div
-      key={index}
-      onClick={e => {
-        e.stopPropagation();
-        if (miner && shouldShow) handleMinerClick(miner);
-      }}
-      title={shouldShow ? `${miner.IP} – ${miner.MinerType}` : 'Empty Slot'}
-      className={`
-        w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
-        ${ shouldShow ? getMinerStatusColor(miner!) : 'bg-white/10' }
-        flex items-center justify-center
-      `}
-    >
-      {shouldShow && (
-        <span className="text-2xl font-bold text-[red] leading-none">
-          {Math.round(miner.THSRT)}
-        </span>
-      )}
-    </div>
-  );
-})}
+                                  let thsValue = miner ? Math.round(miner.THSRT) : 0;
+                                  if (!Number.isFinite(thsValue) || thsValue > 999) thsValue = 0;
+
+                                  let textClass = '';
+                                  let shadow = '';
+                                  let bgClass = hasValidMiner ? 'bg-white/40' : 'bg-white/10';
+
+                                  if (hasValidMiner) {
+                                    if (thsValue <= 80) {
+                                      textClass = 'text-yellow-500';
+                                      shadow = '0 0 10px rgba(234, 179, 8, 0.6)';
+                                    } else {
+                                      textClass = 'text-green-500';
+                                      shadow = '0 0 10px rgba(34, 197, 94, 0.6)';
+                                    }
+                                  }
+
+                                  return (
+                                    <div
+                                      key={index}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (hasValidMiner) handleMinerClick(miner);
+                                      }}
+                                      title={miner && hasValidMiner ? `${miner.IP} – ${miner.MinerType}` : 'Empty Slot'}
+                                      className={`
+                                        w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
+                                        ${bgClass}
+                                        flex items-center justify-center overflow-hidden
+                                        ${hasValidMiner ? 'cursor-pointer' : 'cursor-default'}
+                                      `}
+                                    >
+                                      {hasValidMiner && (
+                                        <span
+                                          className={`text-2xl font-bold leading-none ${textClass}`}
+                                          style={{ textShadow: shadow }}
+                                        >
+                                          {thsValue}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -349,7 +334,6 @@ const Mining3DView = () => {
         </Tabs>
       </Card>
 
-      {/* Miner Popup */}
       <MinerPopup
         miner={selectedMiner}
         open={!!selectedMiner}

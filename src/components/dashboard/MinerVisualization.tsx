@@ -1,4 +1,4 @@
-
+// src/components/MinerVisualization.jsx
 import { useEffect, useState } from "react";
 import { MinerData } from "@/types/miner";
 
@@ -7,170 +7,168 @@ interface MinerVisualizationProps {
 }
 
 export const MinerVisualization = ({ miner }: MinerVisualizationProps) => {
+  const isStopped = miner.Status === 'Stopped';
+  console.log(miner,"ESTA ES LA DATA DE MINER");
+  
+  // Estados internos (seguirán cambiando pero se ignorarán si isStopped)
   const [temperature, setTemperature] = useState(miner.EnvTemp || 37);
   const [hashrate, setHashrate] = useState(miner.THSRT || 85);
   const [rotation, setRotation] = useState({ x: 5, y: 0 });
-  const [fanSpeed, setFanSpeed] = useState(2); // Fan speed in seconds (lower = faster)
+  const [fanSpeed, setFanSpeed] = useState(2);
 
-  // Simulate changing values
+  // Simula cambios en temp/hashrate cada 3s
   useEffect(() => {
-    const tempInterval = setInterval(() => {
-      setTemperature((prev) => {
-        const newTemp = prev + (Math.random() > 0.5 ? 0.1 : -0.1);
-        return Number.parseFloat(Math.min(Math.max(newTemp, 35), 45).toFixed(1));
+    const interval = setInterval(() => {
+      setTemperature(prev => {
+        const v = prev + (Math.random() > 0.5 ? 0.1 : -0.1);
+        return Number((Math.min(Math.max(v, 35), 45)).toFixed(1));
       });
-
-      setHashrate((prev) => {
-        const newRate = prev + (Math.random() > 0.5 ? 2 : -2);
-        return Math.min(Math.max(newRate, 65), 95);
+      setHashrate(prev => {
+        const v = prev + (Math.random() > 0.5 ? 2 : -2);
+        return Math.min(Math.max(v, 65), 95);
       });
     }, 3000);
-
-    return () => {
-      clearInterval(tempInterval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  // Update fan speed based on temperature
+  // Ajusta fanSpeed según temperatura
   useEffect(() => {
-    // Fan spins faster as temperature increases
-    if (temperature < 38) {
-      setFanSpeed(2.5); // Slower
-    } else if (temperature < 40) {
-      setFanSpeed(2); // Medium
-    } else if (temperature < 42) {
-      setFanSpeed(1.5); // Fast
-    } else {
-      setFanSpeed(1); // Very fast
-    }
-  }, [temperature]);
+    const t = isStopped ? 0 : temperature;
+    if (t < 38) setFanSpeed(2.5);
+    else if (t < 40) setFanSpeed(2);
+    else if (t < 42) setFanSpeed(1.5);
+    else setFanSpeed(1);
+  }, [temperature, isStopped]);
 
-  // Add mouse move effect for 3D perspective
+  // Mouse-move 3D
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const container = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - container.left;
-    const y = e.clientY - container.top;
-
-    // Calculate rotation based on mouse position - reduced effect to maintain visibility
-    const rotateY = (x / container.width - 0.5) * 8;
-    const rotateX = (y / container.height - 0.5) * -6;
-
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotateY = (x / rect.width - 0.5) * 8;
+    const rotateX = (y / rect.height - 0.5) * -6;
     setRotation({ x: 5 + rotateX, y: rotateY });
   };
 
-  // Determine hashrate color class
-  const getHashrateColorClass = (value: number) => {
-    if (value >= 80) return "hashrate-green";
-    if (value >= 70) return "hashrate-yellow";
+  const handleMouseLeave = () => setRotation({ x: 5, y: 0 });
+
+  // Color de hashrate
+  const getHashrateColorClass = (v: number) => {
+    if (v >= 80) return "hashrate-green";
+    if (v >= 70) return "hashrate-yellow";
     return "hashrate-red";
   };
 
-  // Generate concentric circles for the fan grid
-  const generateConcentricCircles = () => {
-    // Create 9 concentric circles with increasing size
-    return Array.from({ length: 10 }).map((_, i) => {
-      // Adjusted to make circles larger and cover more area
-      // Start from 14px and increase by 15px each time
+  // Valores que realmente mostramos (override a 0 si está detenido)
+  const displayTemp = isStopped ? 0 : temperature;
+  const displayHash = isStopped ? 0 : hashrate;
+  const displaySpdIn = isStopped ? 0 : miner.SpdIn ?? 0;
+  const displaySpdOut = isStopped ? 0 : miner.SpdOut ?? 0;
+
+  // Concentric circles gen
+  const generateConcentricCircles = () =>
+    Array.from({ length: 10 }).map((_, i) => {
       const size = 10 + i * 15;
       return (
         <div
           key={i}
           className="concentric-circle"
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-          }}
-        ></div>
+          style={{ width: `${size}px`, height: `${size}px` }}
+        />
       );
     });
-  };
 
   return (
     <div
       className="miner-container"
-      style={{ transform: `perspective(800px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => setRotation({ x: 5, y: 0 })} // Reset rotation when mouse leaves
+      onMouseLeave={handleMouseLeave}
+      style={{
+        transform: `perspective(800px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`
+      }}
     >
-      {/* Top ventilation grill */}
-      <div className="ventilation-grill">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="vent-slot"></div>
-        ))}
-        <p style={{fontSize:"12px",color:"black",fontWeight:"bold",padding:"10px"}}>{miner.Worker1 || `${miner.MinerType}.${miner.IP}`}</p>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="vent-slot"></div>
-        ))}
-      </div>
+      {/* Top grill */}
+ <div className="ventilation-grill">
+  {[0,1,2].map(i => <div key={i} className="vent-slot" />)}
 
-      {/* Display panel */}
+  {/* Aquí mostramos Worker1 o "n/a" */}
+  <p style={{color:"black"}} className="font-bold  text-xs px-2">
+    {miner.Worker1 && miner.Worker1.trim() !== '' 
+      ? miner.Worker1 
+      : 'n/a'}
+  </p>
+
+  {[0,1,2].map(i => <div key={i} className="vent-slot" />)}
+</div>
+      {/* Display */}
       <div className="display-panel">
         <div className="display-header">
-          <div style={{display:"flex",gap:"5px"}}>
-            <div className={miner.Status === 'Running' ? "status-led" : "status-led2"}></div>
+          <div className="flex gap-1">
+            <div className={miner.Status === 'Running' ? "status-led" : "status-led2"} />
           </div>
-          <span className="model-name">{miner.MinerType || 'M30'}</span>
+          <span style={{marginTop:"-10px",marginBottom:"10px"}} className="model-name">{miner.MinerType}</span>
         </div>
         <div className="temperature-display">
-          <span>{temperature.toFixed(1)}°C</span>
+          <span>{displayTemp.toFixed(1)}°C</span>
         </div>
       </div>
 
-      {/* Middle section with ports */}
+      {/* Ports */}
       <div className="ports-section">
-        <p style={{fontSize:"13px",fontWeight:"bold",padding:"5px"}}>Fan: {miner.SpdIn || 7000} / {miner.SpdOut || 6900}</p>
+        <p className="text-xs font-bold px-2">
+          Fan: {displaySpdIn} / {displaySpdOut}
+        </p>
       </div>
 
-      {/* Fan section */}
+      {/* Fan */}
       <div className="fan-section">
         <div className="fan-container">
-          {/* Fan frame - new style based on the image */}
           <div className="fan-frame">
-            {/* Corner screws */}
-            <div className="screw screw-top-left"></div>
-            <div className="screw screw-top-right"></div>
-            <div className="screw screw-bottom-left"></div>
-            <div className="screw screw-bottom-right"></div>
+            <div className="screw screw-top-left" />
+            <div className="screw screw-top-right" />
+            <div className="screw screw-bottom-left" />
+            <div className="screw screw-bottom-right" />
 
-            {/* Air flow effect */}
-            <div className="air-flow"></div>
+            <div className="air-flow" />
 
-            {/* Internal fan - the actual fan blades inside the frame */}
-            <div className="internal-fan" style={{ animation: `spin-internal ${fanSpeed}s linear infinite` }}>
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="internal-blade"
-                  style={{
-                    transform: `rotate(${i * (360 / 7)}deg)`,
-                  }}
-                ></div>
-              ))}
-            </div>
+           <div
+  className="internal-fan"
+  style={{
+    // si displayHash === 0 (o isStopped), no gira
+    animation:
+      displayHash === 0
+        ? 'none'
+        : `spin-internal ${fanSpeed}s linear infinite`,
+  }}
+>
+  {Array.from({ length: 7 }).map((_, i) => (
+    <div
+      key={i}
+      className="internal-blade"
+      style={{ transform: `rotate(${i * (360/7)}deg)` }}
+    />
+  ))}
+</div>
+            <div className="internal-fan-hub" />
 
-            {/* Fan hub - the center part of the fan */}
-            <div className="internal-fan-hub"></div>
-
-            {/* Concentric grid like in the image */}
             <div className="concentric-grid">
               {generateConcentricCircles()}
             </div>
           </div>
 
-          {/* Holographic hashrate display - NOT rotating */}
           <div className="hashrate-display">
-            <div className={`hashrate-value ${getHashrateColorClass(hashrate)}`}>
-              <p style={{backgroundColor:"black",borderRadius:"50%",height:"65px",width:"65px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {hashrate.toFixed(0)}
+            <div className={`hashrate-value ${getHashrateColorClass(displayHash)}`}>
+              <p className="bg-black rounded-full h-16 w-16 flex items-center justify-center text-white font-bold">
+                {displayHash.toFixed(0)}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom section */}
+      {/* Bottom */}
       <div className="bottom-section">
-        <span className="hashrate-label">HASHRATE %</span>
+        <span className="hashrate-label">{miner.MACAddr}</span>
       </div>
     </div>
   );

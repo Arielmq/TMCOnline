@@ -83,7 +83,7 @@ const Auth = () => {
           <div className="w-16 h-16 rounded-full bg-bitcoin mx-auto flex items-center justify-center mb-4">
             <span className="text-white font-bold text-xl">T</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">TMC Watch</h1>
+          <h1 className="text-2xl font-bold text-white">Hashira AI</h1>
           <p className="text-muted-foreground">Plataforma de gestión de minería Bitcoin</p>
         </div>
 

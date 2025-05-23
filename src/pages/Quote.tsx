@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,19 +25,19 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-// Define el esquema de validación con zod
+// Define the validation schema with zod
 const quoteFormSchema = z.object({
-  name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
-  email: z.string().email({ message: "Email inválido" }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Invalid email" }),
   phone: z.string().optional(),
   company: z.string().optional(),
-  minerCount: z.string().min(1, { message: "Indique el número de mineros" }),
-  minerType: z.string().min(1, { message: "Seleccione un tipo de minero" }),
+  minerCount: z.string().min(1, { message: "Please specify the number of miners" }),
+  minerType: z.string().min(1, { message: "Please select a miner type" }),
   powerRequirement: z.string().optional(),
-  location: z.string().min(1, { message: "Seleccione una ubicación" }),
+  location: z.string().min(1, { message: "Please select a location" }),
   additionalInfo: z.string().optional(),
   contactConsent: z.boolean().refine(val => val === true, {
-    message: "Debes aceptar los términos para continuar"
+    message: "You must agree to be contacted to proceed"
   })
 });
 
@@ -67,13 +66,13 @@ const Quote = () => {
   function onSubmit(data: QuoteFormValues) {
     setIsSubmitting(true);
     
-    // Simulamos el envío del formulario
+    // Simulate form submission
     setTimeout(() => {
-      console.log("Datos del formulario:", data);
+      console.log("Form data:", data);
       setIsSubmitting(false);
       setIsSubmitted(true);
-      toast.success("Formulario enviado correctamente", {
-        description: "Nos pondremos en contacto contigo pronto.",
+      toast.success("Form submitted successfully", {
+        description: "We will contact you soon.",
       });
     }, 1500);
   }
@@ -82,14 +81,14 @@ const Quote = () => {
     <MainLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Quote</h1>
-        <p className="text-muted-foreground">Solicita una cotización personalizada para tu operación minera</p>
+        <p className="text-muted-foreground">Request a personalized quote for your mining operation</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="border border-border rounded-lg p-6 bg-tmcdark-card">
-          <h2 className="text-xl font-medium mb-4">Solicitud de Cotización</h2>
+          <h2 className="text-xl font-medium mb-4">Quote Request</h2>
           <p className="text-muted-foreground mb-6">
-            Complete el formulario a continuación para obtener una cotización personalizada para su operación de minería a gran escala. Nuestro equipo revisará sus necesidades y se pondrá en contacto con usted dentro de 24-48 horas.
+            Fill out the form below to receive a personalized quote for your large-scale mining operation. Our team will review your needs and contact you within 24-48 hours.
           </p>
           
           {isSubmitted ? (
@@ -99,11 +98,11 @@ const Quote = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">¡Solicitud enviada con éxito!</h3>
+              <h3 className="text-xl font-semibold mb-2">Request Submitted Successfully!</h3>
               <p className="text-muted-foreground mb-6">
-                Gracias por tu interés en TMC Watch. Nos pondremos en contacto contigo en breve para discutir tus necesidades de hosting.
+                Thank you for your interest in Hashira AI. We will reach out to you shortly to discuss your hosting needs.
               </p>
-              <Button onClick={() => setIsSubmitted(false)}>Enviar otra solicitud</Button>
+              <Button onClick={() => setIsSubmitted(false)}>Submit Another Request</Button>
             </div>
           ) : (
             <Form {...form}>
@@ -114,7 +113,7 @@ const Quote = () => {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre completo *</FormLabel>
+                        <FormLabel>Full Name *</FormLabel>
                         <FormControl>
                           <Input placeholder="John Doe" {...field} />
                         </FormControl>
@@ -143,7 +142,7 @@ const Quote = () => {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
+                        <FormLabel>Phone</FormLabel>
                         <FormControl>
                           <Input placeholder="+1 123-456-7890" {...field} />
                         </FormControl>
@@ -156,7 +155,7 @@ const Quote = () => {
                     name="company"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Empresa</FormLabel>
+                        <FormLabel>Company</FormLabel>
                         <FormControl>
                           <Input placeholder="Mining Company LLC" {...field} />
                         </FormControl>
@@ -172,7 +171,7 @@ const Quote = () => {
                     name="minerCount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cantidad de mineros *</FormLabel>
+                        <FormLabel>Number of Miners *</FormLabel>
                         <FormControl>
                           <Input placeholder="10" {...field} />
                         </FormControl>
@@ -185,11 +184,11 @@ const Quote = () => {
                     name="minerType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo de minero *</FormLabel>
+                        <FormLabel>Miner Type *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar tipo de minero" />
+                              <SelectValue placeholder="Select miner type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -198,8 +197,8 @@ const Quote = () => {
                             <SelectItem value="antminer_s19_pro">Antminer S19 Pro</SelectItem>
                             <SelectItem value="whatsminer_m30s">Whatsminer M30S</SelectItem>
                             <SelectItem value="whatsminer_m30s+">Whatsminer M30S+</SelectItem>
-                            <SelectItem value="mixed">Mixto</SelectItem>
-                            <SelectItem value="other">Otro</SelectItem>
+                            <SelectItem value="mixed">Mixed</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -214,12 +213,12 @@ const Quote = () => {
                     name="powerRequirement"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Requerimiento de energía (kW)</FormLabel>
+                        <FormLabel>Power Requirement (kW)</FormLabel>
                         <FormControl>
                           <Input placeholder="30" {...field} />
                         </FormControl>
                         <FormDescription>
-                          Si no lo conoces, podemos ayudarte a calcularlo.
+                          If you don't know this, we can help you calculate it.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -230,19 +229,19 @@ const Quote = () => {
                     name="location"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ubicación preferida *</FormLabel>
+                        <FormLabel>Preferred Location *</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar ubicación" />
+                              <SelectValue placeholder="Select location" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="usa_texas">USA - Texas</SelectItem>
                             <SelectItem value="usa_wyoming">USA - Wyoming</SelectItem>
-                            <SelectItem value="canada">Canadá</SelectItem>
+                            <SelectItem value="canada">Canada</SelectItem>
                             <SelectItem value="paraguay">Paraguay</SelectItem>
-                            <SelectItem value="no_preference">Sin preferencia</SelectItem>
+                            <SelectItem value="no_preference">No preference</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -256,10 +255,10 @@ const Quote = () => {
                   name="additionalInfo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Información adicional</FormLabel>
+                      <FormLabel>Additional Information</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Detalles adicionales sobre tu proyecto o necesidades específicas" 
+                          placeholder="Additional details about your project or specific needs" 
                           className="min-h-[100px]"
                           {...field}
                         />
@@ -282,10 +281,10 @@ const Quote = () => {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          Acepto ser contactado acerca de mi solicitud de cotización *
+                          I agree to be contacted regarding my quote request *
                         </FormLabel>
                         <FormDescription>
-                          Respetamos tu privacidad y no compartiremos tus datos con terceros.
+                          We respect your privacy and will not share your data with third parties.
                         </FormDescription>
                       </div>
                       <FormMessage />
@@ -298,7 +297,7 @@ const Quote = () => {
                   className="w-full mt-6" 
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Enviando..." : "Solicitar cotización"}
+                  {isSubmitting ? "Submitting..." : "Request Quote"}
                 </Button>
               </form>
             </Form>
@@ -306,7 +305,7 @@ const Quote = () => {
         </div>
 
         <div className="border border-border rounded-lg p-6 bg-tmcdark-card">
-          <h2 className="text-xl font-medium mb-4">Por qué elegir TMC Watch</h2>
+          <h2 className="text-xl font-medium mb-4">Why Choose Hashira AI</h2>
           
           <div className="space-y-6">
             <div className="flex gap-3">
@@ -316,8 +315,8 @@ const Quote = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium mb-1">Energía de bajo costo</h3>
-                <p className="text-muted-foreground text-sm">Acceso a fuentes de energía confiables y económicas para maximizar la rentabilidad de tu minería.</p>
+                <h3 className="font-medium mb-1">Low-Cost Energy</h3>
+                <p className="text-muted-foreground text-sm">Access to reliable and cost-effective energy sources to maximize your mining profitability.</p>
               </div>
             </div>
             
@@ -328,8 +327,8 @@ const Quote = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium mb-1">Seguridad 24/7</h3>
-                <p className="text-muted-foreground text-sm">Instalaciones con vigilancia y seguridad las 24 horas, acceso controlado y cámaras de seguridad.</p>
+                <h3 className="font-medium mb-1">24/7 Security</h3>
+                <p className="text-muted-foreground text-sm">Facilities with 24-hour surveillance, controlled access, and security cameras.</p>
               </div>
             </div>
             
@@ -340,8 +339,8 @@ const Quote = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium mb-1">Monitoreo avanzado</h3>
-                <p className="text-muted-foreground text-sm">Acceso a nuestra plataforma TMC Watch para monitoreo en tiempo real y gestión remota de tus equipos.</p>
+                <h3 className="font-medium mb-1">Advanced Monitoring</h3>
+                <p className="text-muted-foreground text-sm">Access to our Hashira AI platform for real-time monitoring and remote management of your equipment.</p>
               </div>
             </div>
             
@@ -352,8 +351,8 @@ const Quote = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium mb-1">Soporte técnico experto</h3>
-                <p className="text-muted-foreground text-sm">Equipo de técnicos especializados disponibles para mantenimiento y reparación de tu hardware.</p>
+                <h3 className="font-medium mb-1">Expert Technical Support</h3>
+                <p className="text-muted-foreground text-sm">Team of specialized technicians available for maintenance and repair of your hardware.</p>
               </div>
             </div>
 
@@ -364,16 +363,16 @@ const Quote = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium mb-1">Precios transparentes</h3>
-                <p className="text-muted-foreground text-sm">Sin costos ocultos. Nuestras tarifas incluyen todos los servicios necesarios para tu operación.</p>
+                <h3 className="font-medium mb-1">Transparent Pricing</h3>
+                <p className="text-muted-foreground text-sm">No hidden costs. Our fees include all necessary services for your operation.</p>
               </div>
             </div>
           </div>
           
           <div className="mt-8 p-4 rounded-lg bg-tmcdark border border-border">
-            <h3 className="font-semibold mb-2">¿Necesitas una cotización urgente?</h3>
+            <h3 className="font-semibold mb-2">Need an Urgent Quote?</h3>
             <p className="text-sm text-muted-foreground mb-3">
-              Contáctanos directamente para atención prioritaria:
+              Contact us directly for priority assistance:
             </p>
             <div className="flex items-center text-sm mb-2">
               <svg className="w-4 h-4 mr-2 text-bitcoin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

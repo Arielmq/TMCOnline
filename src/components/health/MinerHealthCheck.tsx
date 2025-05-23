@@ -1,4 +1,4 @@
-
+// src/components/dashboard/MinerHealthCheck.tsx
 import { useState } from "react";
 import { useMiner } from "@/context/MinerContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,119 +11,96 @@ import MinerPopup from "../workers/MinerPopup";
 
 // Health check thresholds for different miner types
 const HASHRATE_THRESHOLDS = {
-  "M30S": { green: 80, yellow: 70 },
+  M30S: { green: 80, yellow: 70 },
   "M31S+": { green: 75, yellow: 67 },
   "M30S++": { green: 97, yellow: 85 },
-  "M50": { green: 98, yellow: 85 }
+  M50: { green: 98, yellow: 85 },
 };
 
 // Temperature thresholds (universal)
-const TEMP_THRESHOLDS = {
-  yellow: 87,
-  red: 92
-};
+const TEMP_THRESHOLDS = { yellow: 87, red: 92 };
 
-// Issues identification
-const identifyIssues = (miner: MinerData): {hasIssue: boolean, issues: string[]} => {
+// Identify health issues (offline miners are filtered out upstream)
+const identifyIssues = (miner: MinerData): string[] => {
   const issues: string[] = [];
-  let hasIssue = false;
-  
-  // Check if miner is offline or not running
-  if (miner.THSAvg === 0 || miner.Status === "Suspended") {
-    issues.push("Minero inactivo");
-    hasIssue = true;
-    return { hasIssue, issues };
-  }
-  
-  // Check hashrate
-  let minerType = miner.MinerType.split('_')[0];
-  // Handle M30S++ specially
-  if (minerType.includes("++")) {
-    minerType = "M30S++";
-  }
-  const thresholds = HASHRATE_THRESHOLDS[minerType as keyof typeof HASHRATE_THRESHOLDS] || HASHRATE_THRESHOLDS.M30S;
-  
-  if (miner.THSAvg < thresholds.yellow) {
-    issues.push("Bajo Hashrate");
-    hasIssue = true;
-  }
-  
-  // Check temperature
+
+  // Hashrate thresholds
+  let type = miner.MinerType.split("_")[0];
+  if (type.includes("++")) type = "M30S++";
+  const t = HASHRATE_THRESHOLDS[type as keyof typeof HASHRATE_THRESHOLDS] || HASHRATE_THRESHOLDS.M30S;
+  if (miner.THSAvg < t.yellow) issues.push("Bajo Hashrate");
+
+  // Temperature thresholds
   if (miner.EnvTemp > TEMP_THRESHOLDS.red) {
     issues.push("Sobrecalentamiento crítico");
-    hasIssue = true;
   } else if (miner.EnvTemp > TEMP_THRESHOLDS.yellow) {
     issues.push("Temperatura elevada");
-    hasIssue = true;
   }
 
-  return { hasIssue, issues };
+  return issues;
 };
 
-// Get hashrate color code based on thresholds
-const getHashrateStatus = (miner: MinerData): "green" | "yellow" | "red" => {
-  if (miner.THSAvg === 0) return "red";
-  
-  let minerType = miner.MinerType.split('_')[0];
-  // Handle M30S++ specially
-  if (minerType.includes("++")) {
-    minerType = "M30S++";
-  }
-  const thresholds = HASHRATE_THRESHOLDS[minerType as keyof typeof HASHRATE_THRESHOLDS] || HASHRATE_THRESHOLDS.M30S;
-  
-  if (miner.THSAvg >= thresholds.green) return "green";
-  if (miner.THSAvg >= thresholds.yellow) return "yellow";
+// Color indicator helpers
+const getHashrateColor = (hr: number) => {
+  if (hr === 0) return "red";
+  // reuse thresholds logic
+  let type = "M30S";
+  const t = HASHRATE_THRESHOLDS[type];
+  if (hr >= t.green) return "green";
+  if (hr >= t.yellow) return "yellow";
   return "red";
 };
-
-// Get temperature color code based on thresholds
-const getTempStatus = (temp: number): "green" | "yellow" | "red" => {
-  if (temp >= TEMP_THRESHOLDS.red) return "red";
-  if (temp >= TEMP_THRESHOLDS.yellow) return "yellow";
+const getTempColor = (temp: number) => {
+  if (temp > TEMP_THRESHOLDS.red) return "red";
+  if (temp > TEMP_THRESHOLDS.yellow) return "yellow";
   return "green";
 };
 
 const MinerHealthCheck = () => {
   const { locations } = useMiner();
   const [selectedMiner, setSelectedMiner] = useState<MinerData | null>(null);
-  
-  // Find miners with issues
+
+  // Collect only running miners with real data
   const minersWithIssues: {
     miner: MinerData;
     location: string;
     panel: number;
     issues: string[];
   }[] = [];
-  
-  locations.forEach(location => {
-    location.panels.forEach(panel => {
-      panel.miners.forEach(miner => {
-        const { hasIssue, issues } = identifyIssues(miner);
-        if (hasIssue) {
+
+  locations.forEach((loc) => {
+    loc.panels.forEach((panel) => {
+      panel.miners.forEach((miner) => {
+        // skip offline or suspended
+        if (miner.THSAvg === 0 || miner.Status === "Suspended") return;
+        const issues = identifyIssues(miner);
+        if (issues.length > 0) {
           minersWithIssues.push({
             miner,
-            location: location.name,
+            location: loc.name,
             panel: panel.number,
-            issues
+            issues,
           });
         }
       });
     });
   });
-  
+
   return (
     <div>
       {minersWithIssues.length > 0 ? (
         <>
-          <h2 className="text-xl font-semibold mb-4">Miners with Health Issues ({minersWithIssues.length})</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Miners with Health Issues ({minersWithIssues.length})
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {minersWithIssues.map((item, index) => {
-              const hashrateStatus = getHashrateStatus(item.miner);
-              const tempStatus = getTempStatus(item.miner.EnvTemp);
-              
+            {minersWithIssues.map((item, idx) => {
+              const hrColor = getHashrateColor(item.miner.THSAvg);
+              const tempColor = getTempColor(item.miner.EnvTemp);
+
               return (
-                <Card 
-                  key={`${item.miner.IP}-${index}`} 
+                <Card
+                  key={`${item.miner.IP}-${idx}`}
                   className="border-border bg-tmcdark-card cursor-pointer hover:border-tmcblue-light transition-all"
                   onClick={() => setSelectedMiner(item.miner)}
                 >
@@ -134,41 +111,57 @@ const MinerHealthCheck = () => {
                         {item.miner.MACAddr}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="flex flex-col">
                         <div className="text-xs text-muted-foreground">Hashrate</div>
                         <div className="flex items-center gap-1">
-                          <div className={`w-2 h-2 rounded-full ${
-                            hashrateStatus === "green" ? "bg-green-500" : 
-                            hashrateStatus === "yellow" ? "bg-yellow-500" : 
-                            "bg-red-500"
-                          }`} />
-                          <span className="text-sm font-medium">{item.miner.THSAvg} TH/s</span>
+                          <div
+                            className={`w-2 h-2 rounded-full bg-${
+                              hrColor === "green"
+                                ? "green-500"
+                                : hrColor === "yellow"
+                                ? "yellow-500"
+                                : "red-500"
+                            }`}
+                          />
+                          <span className="text-sm font-medium">
+                            {item.miner.THSAvg} TH/s
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-col">
-                        <div className="text-xs text-muted-foreground">Temperature</div>
+                        <div className="text-xs text-muted-foreground">
+                          Temperature
+                        </div>
                         <div className="flex items-center gap-1">
-                          <div className={`w-2 h-2 rounded-full ${
-                            tempStatus === "green" ? "bg-green-500" : 
-                            tempStatus === "yellow" ? "bg-yellow-500" : 
-                            "bg-red-500"
-                          }`} />
-                          <span className="text-sm font-medium">{item.miner.EnvTemp}°C</span>
+                          <div
+                            className={`w-2 h-2 rounded-full bg-${
+                              tempColor === "green"
+                                ? "green-500"
+                                : tempColor === "yellow"
+                                ? "yellow-500"
+                                : "red-500"
+                            }`}
+                          />
+                          <span className="text-sm font-medium">
+                            {item.miner.EnvTemp}°C
+                          </span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.issues.map((issue, i) => (
-                        <Badge 
-                          key={i} 
+                        <Badge
+                          key={i}
                           variant={
-                            issue.includes("Sobrecalentamiento") ? "destructive" : 
-                            issue.includes("Temperatura") ? "secondary" : 
-                            "default"
+                            issue.includes("Sobrecalentamiento")
+                              ? "destructive"
+                              : issue.includes("Temperatura")
+                              ? "secondary"
+                              : "default"
                           }
                           className="text-xs"
                         >
@@ -176,9 +169,9 @@ const MinerHealthCheck = () => {
                         </Badge>
                       ))}
                     </div>
-                    
+
                     <div className="mt-2 text-xs text-muted-foreground">
-                      <span>Location: {item.location}, Panel {item.panel}</span>
+                      Location: {item.location}, Panel {item.panel}
                     </div>
                   </CardContent>
                 </Card>
@@ -194,10 +187,10 @@ const MinerHealthCheck = () => {
           </AlertDescription>
         </Alert>
       )}
-      
-      <MinerPopup 
+
+      <MinerPopup
         miner={selectedMiner}
-        open={!!selectedMiner} 
+        open={!!selectedMiner}
         onClose={() => setSelectedMiner(null)}
       />
     </div>

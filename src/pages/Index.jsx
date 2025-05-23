@@ -1,39 +1,41 @@
 // src/pages/Index.jsx
 import MainLayout from "@/components/layout/MainLayout";
 import StatCard from "@/components/dashboard/StatCard";
-import MinerCard from "@/components/dashboard/MinerCard";
 import Mining3DView from "@/components/dashboard/Mining3DView";
 import { Card } from "@/components/ui/card";
 import { useMiner } from "@/context/MinerContext";
-import { Zap, Thermometer, LayoutGrid, Activity, ArrowDown } from "lucide-react";
+import { LayoutGrid, Thermometer, Activity, ArrowDown } from "lucide-react";
 import MinerApiMonitor from "@/components/miner-api/MinerApiMonitor";
+import { useEffect, useState, useRef } from "react";
 import { useMinerApi } from "@/hooks/useMinerApi";
-import { useEffect, useState } from "react";
 
 // Utility function to convert MHS to TH/s
 const mhsToThs = (mhs) => (mhs / 1_000_000).toFixed(2);
 
 // Utility function to calculate average temperature
 const calculateAvgTemperature = (miners) => {
-  const validMiners = miners.filter((miner) => miner.status === "fulfilled" && miner.data?.summary?.envTemp);
-  if (validMiners.length === 0) return "N/A";
-  const totalTemp = validMiners.reduce((sum, miner) => sum + (miner.data.summary.envTemp || 0), 0);
-  return `${(totalTemp / validMiners.length).toFixed(1)}°C`;
+  const valid = miners.filter(
+    (m) => m.status === "fulfilled" && m.data?.summary?.envTemp != null
+  );
+  if (valid.length === 0) return "N/A";
+  const sum = valid.reduce((acc, m) => acc + m.data.summary.envTemp, 0);
+  return `${(sum / valid.length).toFixed(1)}°C`;
 };
 
 // Utility function to count active workers
 const countActiveWorkers = (miners) => {
-  const active = miners.filter((miner) => miner.status === "fulfilled").length;
-  const total = miners.length;
-  return `${active}/${total}`;
+  const active = miners.filter((m) => m.status === "fulfilled").length;
+  return `${active}/${miners.length}`;
 };
 
 // Utility function to calculate total hashrate
 const calculateTotalHashrate = (miners) => {
-  const validMiners = miners.filter((miner) => miner.status === "fulfilled" && miner.data?.summary?.hashrateAvg);
-  if (validMiners.length === 0) return "0 TH/s";
-  const totalHashrate = validMiners.reduce((sum, miner) => sum + (miner.data.summary.hashrateAvg || 0), 0);
-  return `${mhsToThs(totalHashrate)} TH/s`;
+  const valid = miners.filter(
+    (m) => m.status === "fulfilled" && m.data?.summary?.hashrateAvg != null
+  );
+  if (valid.length === 0) return "0 TH/s";
+  const total = valid.reduce((acc, m) => acc + m.data.summary.hashrateAvg, 0);
+  return `${mhsToThs(total)} TH/s`;
 };
 
 const Index = () => {
@@ -47,99 +49,82 @@ const Index = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Process miner data when new API data is received
+  // Demo popup state
+  const [showDemoPopup, setShowDemoPopup] = useState(true);
+  const popupRef = useRef(null);
+
+  // Show demo popup on mount
   useEffect(() => {
-    console.log("Received data:", data); // Debug: Log data to inspect structure
+    setShowDemoPopup(true);
+  }, []);
 
-    if (data && data.miners && Array.isArray(data.miners) && data.miners.length > 0) {
-      // Process miners if at least one has valid data
-      const validMiners = data.miners.filter(
-        (miner) => miner.status === "fulfilled" && miner.data && miner.data.summary
-      );
-
-      if (validMiners.length > 0) {
-        // Process miners for display
-        const newProcessedMiners = data.miners.map((miner) => {
-          if (miner.status !== "fulfilled" || !miner.data || !miner.data.summary) {
-            return {
-              name: `Miner ${miner.ip}`,
-              hashrate: "0 TH/s",
-              status: "error",
-              temperature: "N/A",
-              efficiency: "N/A",
-            };
-          }
-
-          const { summary, ip } = miner.data;
-          const hashrate = summary?.hashrateAvg ? mhsToThs(summary.hashrateAvg) : "0";
-          const status = summary?.hashrateAvg > 0 ? "active" : "warning";
-          const temperature = summary?.envTemp ? `${summary.envTemp.toFixed(1)}°C` : "N/A";
-          const efficiency = summary?.powerRate ? `${summary.powerRate.toFixed(1)} J/TH` : "N/A";
-
-          return {
-            name: `WhatsMiner ${ip}`,
-            hashrate: `${hashrate} TH/s`,
-            status,
-            temperature,
-            efficiency,
-          };
-        });
-
-        // Calculate stats for StatCard
-        const newStats = {
-          totalHashrate: calculateTotalHashrate(data.miners),
-          activeWorkers: countActiveWorkers(data.miners),
-          avgTemperature: calculateAvgTemperature(data.miners),
-        };
-
-        // Update state with new data
-        setProcessedMiners(newProcessedMiners);
-        setStats(newStats);
-        setIsLoading(false);
-      } else {
-        console.warn("No valid miners found in data:", data.miners); // Debug: Log invalid miners
+  // Close popup on outside click or Escape
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setShowDemoPopup(false);
       }
-    } else {
-      console.warn("Invalid or empty data received:", data); // Debug: Log invalid data
+    };
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setShowDemoPopup(false);
+    };
+    if (showDemoPopup) {
+      document.addEventListener("mousedown", handleOutside);
+      document.addEventListener("keydown", handleEsc);
     }
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [showDemoPopup]);
 
-    // Fallback to localStorage data if available after a timeout
-    const timeout = setTimeout(() => {
-      if (isLoading && data.miners.length === 0) {
-        const savedMiners = localStorage.getItem('miners');
-        if (savedMiners) {
-          const parsedMiners = JSON.parse(savedMiners);
-          if (Array.isArray(parsedMiners) && parsedMiners.length > 0) {
-            const newProcessedMiners = parsedMiners.map((miner) => ({
-              name: `WhatsMiner ${miner.ip}`,
-              hashrate: miner.summary?.hashrateAvg ? `${mhsToThs(miner.summary.hashrateAvg)} TH/s` : "0 TH/s",
-              status: miner.summary?.hashrateAvg > 0 ? "active" : "warning",
-              temperature: miner.summary?.envTemp ? `${miner.summary.envTemp.toFixed(1)}°C` : "N/A",
-              efficiency: miner.summary?.powerRate ? `${miner.summary.powerRate.toFixed(1)} J/TH` : "N/A",
-            }));
-            setProcessedMiners(newProcessedMiners);
-            setStats({
-              totalHashrate: calculateTotalHashrate(parsedMiners),
-              activeWorkers: countActiveWorkers(parsedMiners),
-              avgTemperature: calculateAvgTemperature(parsedMiners),
-            });
-            setIsLoading(false);
-            console.log("Fallback to localStorage data:", parsedMiners); // Debug: Log fallback
-          }
+  // Process miner data when API data arrives
+  useEffect(() => {
+    if (data?.miners?.length) {
+      // build processedMiners
+      const pm = data.miners.map((m) => {
+        if (m.status !== "fulfilled" || !m.data?.summary) {
+          return {
+            name: `Miner ${m.ip}`,
+            hashrate: "0 TH/s",
+            status: "error",
+            temperature: "N/A",
+            efficiency: "N/A",
+          };
         }
-      }
-    }, 5000); // 5-second timeout
+        const { summary, ip } = m.data;
+        const hr = summary.hashrateAvg ? mhsToThs(summary.hashrateAvg) : "0";
+        const status = summary.hashrateAvg > 0 ? "active" : "warning";
+        const temp = summary.envTemp != null ? `${summary.envTemp.toFixed(1)}°C` : "N/A";
+        const eff = summary.powerRate != null ? `${summary.powerRate.toFixed(1)} J/TH` : "N/A";
+        return {
+          name: `WhatsMiner ${ip}`,
+          hashrate: `${hr} TH/s`,
+          status,
+          temperature: temp,
+          efficiency: eff,
+        };
+      });
 
-    return () => clearTimeout(timeout);
+      setProcessedMiners(pm);
+      setStats({
+        totalHashrate: calculateTotalHashrate(data.miners),
+        activeWorkers: countActiveWorkers(data.miners),
+        avgTemperature: calculateAvgTemperature(data.miners),
+      });
+      setIsLoading(false);
+    }
   }, [data]);
 
-  // Render loading state if no data is available
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Loading data...</p>
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+          <div
+            className="w-24 h-24 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+            aria-label="Loading spinner"
+          />
         </div>
       </MainLayout>
     );
@@ -147,13 +132,42 @@ const Index = () => {
 
   return (
     <MainLayout>
+      {/* Demo Popup */}
+      {showDemoPopup && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div
+          style={{backgroundColor:"#1A1A1A",border:"solid 2px white",borderRadius:"5px"}}
+            ref={popupRef}
+            className="bg-[#1A1A1A] text-white p-8 rounded-xl max-w-lg w-full mx-4 shadow-2xl"
+          >
+            <h2 className="text-2xl font-bold mb-4">Attention</h2>
+            <p className="mb-6 leading-relaxed">
+              This is a demo version of the program. You can see how it works and, above all, the
+              quality of the software using real data from our mining farms.
+            </p>
+            <p className="mb-6 leading-relaxed">
+              To obtain the full version, please request a trial through the Trial section or
+              contact us by email at{" "}
+              <span className="underline">hashiraAI@gmail.com</span>.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowDemoPopup(false)}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to TMC Watch</p>
+        <p className="text-muted-foreground">Welcome to Hashira AI</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-   
         <StatCard
           title="Active Workers"
           value={stats.activeWorkers}
@@ -163,7 +177,6 @@ const Index = () => {
           title="Avg. Temperature"
           value={stats.avgTemperature}
           icon={<Thermometer className="h-5 w-5 text-status-warning" />}
-          trend={{ value: "N/A", isPositive: false }}
         />
       </div>
 
@@ -177,8 +190,11 @@ const Index = () => {
             <Card style={{ height: "600px" }} className="p-4 bg-tmcdark-card border-border">
               <h3 className="font-medium text-lg mb-3">Recent Activity</h3>
               <div style={{ overflow: "auto", height: "500px" }} className="space-y-2 text-sm">
-                {processedMiners.map((miner, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 rounded bg-tmcdark">
+                {processedMiners.map((miner, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center p-2 rounded bg-tmcdark"
+                  >
                     <span className="flex items-center">
                       {miner.status === "active" ? (
                         <Activity className="h-4 w-4 mr-2 text-status-success" />
@@ -188,7 +204,9 @@ const Index = () => {
                       {miner.name} {miner.status === "active" ? "online" : "offline"}
                     </span>
                     <span className="text-muted-foreground">
-                      {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : "N/A"}
+                      {data.timestamp
+                        ? new Date(data.timestamp).toLocaleTimeString()
+                        : "N/A"}
                     </span>
                   </div>
                 ))}
