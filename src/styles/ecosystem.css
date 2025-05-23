@@ -1,0 +1,111 @@
+
+.ecosystem {
+  background-color: var(--dark-blue);
+  position: relative;
+}
+
+.ecosystem__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.ecosystem__icon {
+  font-size: 2.5rem;
+  display: inline-block;
+  animation: float 3s ease-in-out infinite;
+}
+
+.ecosystem__intro {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 3rem;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ecosystem__features {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 1.5rem;
+  padding: 1rem 0.5rem;
+  margin: 0 -0.5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) var(--light-blue);
+}
+
+.ecosystem__features::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ecosystem__features::-webkit-scrollbar-track {
+  background: var(--light-blue);
+  border-radius: 3px;
+}
+
+.ecosystem__features::-webkit-scrollbar-thumb {
+  background-color: var(--gold);
+  border-radius: 3px;
+}
+
+.ecosystem__card {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  background-color: var(--light-blue);
+  transition: all 0.3s ease;
+}
+
+.ecosystem__card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.ecosystem__card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  animation: float 3s ease-in-out infinite;
+}
+
+.ecosystem__card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ecosystem__card-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: 0.8rem;
+}
+
+.ecosystem__card-desc {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 992px) {
+  .ecosystem__features {
+    padding-bottom: 1.5rem;
+  }
+}
+
+@media (min-width: 993px) {
+  .ecosystem__features {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    overflow-x: visible;
+  }
+  
+  .ecosystem__card {
+    flex: unset;
+  }
+}

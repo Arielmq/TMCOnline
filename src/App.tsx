@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { MinerProvider } from "@/context/MinerContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index.jsx";
+import Index from "./pages/IndexApp.jsx";
 import Workers from "./pages/Workers";
 import CloudMining from "./pages/CloudMining";
 import HealthCheck from "./pages/HealthCheck";
@@ -18,7 +18,7 @@ import Blog from "./pages/Blog";
 import Auth from "./pages/Auth";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
-
+import Home from "./pages/Home.jsx"
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -31,7 +31,8 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/indexApp" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/workers" element={<ProtectedRoute><Workers /></ProtectedRoute>} />
               <Route path="/cloud-mining" element={<ProtectedRoute><CloudMining /></ProtectedRoute>} />
               <Route path="/health-check" element={<ProtectedRoute><HealthCheck /></ProtectedRoute>} />
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
               <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
+              
             </Routes>
           </MinerProvider>
         </AuthProvider>

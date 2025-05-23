@@ -1,0 +1,135 @@
+
+.why-different {
+  background-color: var(--light-blue);
+  position: relative;
+  overflow: hidden;
+}
+
+.why-different__content {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.why-different__highlight {
+  flex: 1;
+  padding: 3rem;
+}
+
+.why-different__title {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.why-different__icon {
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite;
+  display: inline-block;
+}
+
+.why-different__subtitle {
+  font-size: 2.2rem;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  font-weight: 900;
+  text-shadow: var(--text-shadow);
+}
+
+.why-different__text {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.why-different__separator {
+  height: 4px;
+  background-color: var(--gold);
+  width: 100px;
+  margin: 2rem 0;
+  border-radius: 2px;
+}
+
+.why-different__points {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.why-different__point {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.why-different__point-icon {
+  background-color: var(--gold);
+  color: var(--dark-blue);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.why-different__point-text {
+  font-weight: 700;
+  color: var(--white);
+}
+
+.why-different__image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 400px;
+}
+
+.why-different__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: float 5s ease-in-out infinite;
+}
+
+.why-different__logo-img {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  object-fit: cover;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+
+@media (max-width: 992px) {
+  .why-different__content {
+    flex-direction: column;
+  }
+  
+  .why-different__points {
+    grid-template-columns: 1fr;
+  }
+  
+  .why-different__image {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .why-different__highlight {
+    padding: 2rem;
+  }
+  
+  .why-different__title {
+    font-size: 2rem;
+  }
+  
+  .why-different__subtitle {
+    font-size: 1.8rem;
+  }
+}

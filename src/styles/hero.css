@@ -1,0 +1,304 @@
+.hero {
+  min-height: 100vh;
+  background-color: #173754;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-top: 80px;
+  overflow: hidden;
+  padding-bottom: 2rem;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('https://images.unsplash.com/photo-1518770660439-4636190af475') center/cover no-repeat;
+  opacity: 0.15;
+  z-index: 1;
+}
+
+.hero__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, var(--dark-blue) 0%, rgba(12, 30, 44, 0.8) 100%);
+  z-index: 2;
+}
+
+.hero__container {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.hero__content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.hero__title {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: var(--text-shadow);
+  color: #FFB81C !important;
+}
+
+.hero__subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero__cta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.hero__wallets {
+  margin-top: 2rem;
+}
+
+.hero__wallets-title {
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero__wallet-icons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero__wallet-icon {
+  background-color: var(--light-blue);
+  border: 2px solid var(--gold);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+.hero__wallet-icon:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background-color: var(--accent-blue);
+}
+
+.hero__contract {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: rgba(23, 55, 84, 0.8);
+  border: 2px solid var(--gold);
+  border-radius: var(--border-radius);
+  backdrop-filter: blur(10px);
+}
+
+.hero__contract-title {
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+
+.hero__contract-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hero__contract-address,
+.hero__contract-network,
+.hero__contract-symbol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hero__contract-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.hero__contract-value {
+  font-family: 'Courier New', monospace;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem;
+  border-radius: 6px;
+  color: #FFB81C;
+  font-size: 0.9rem;
+  word-break: break-all;
+  border: 1px solid rgba(255, 184, 28, 0.3);
+}
+
+.hero__contract-address-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero__contract-copy-btn {
+  background-color: rgba(255, 184, 28, 0.1);
+  border: 1px solid rgba(255, 184, 28, 0.3);
+  border-radius: 6px;
+  padding: 0.5rem;
+  color: #FFB81C;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.hero__contract-copy-btn:hover {
+  background-color: rgba(255, 184, 28, 0.2);
+  border-color: rgba(255, 184, 28, 0.5);
+  transform: scale(1.05);
+}
+
+.hero__contract-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.hero__image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero__tmc-coin {
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.hero__tmc-coin img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 20px rgba(255, 193, 7, 0.6));
+  object-fit: cover;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@media (max-width: 992px) {
+  .hero__container {
+    flex-direction: column;
+    text-align: center;
+    padding-top: 2rem;
+  }
+  
+  .hero__content {
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+  }
+  
+  .hero__cta {
+    justify-content: center;
+  }
+  
+  .hero__wallet-icons {
+    justify-content: center;
+  }
+  
+  .hero__title {
+    font-size: 2.8rem;
+  }
+  
+  .hero__contract-info {
+    text-align: left;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding-top: 100px;
+  }
+  
+  .hero__title {
+    font-size: 2.5rem;
+  }
+  
+  .hero__subtitle {
+    font-size: 1.3rem;
+  }
+  
+  .hero__contract {
+    padding: 1.2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero {
+    min-height: auto;
+    padding: 100px 0 2rem;
+  }
+
+  .hero__title {
+    font-size: 2rem;
+  }
+  
+  .hero__subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .hero__cta {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hero__tmc-coin {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .hero__wallet-icons {
+    justify-content: center;
+  }
+  
+  .hero__wallet-icon {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .hero__contract {
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .hero__contract-value {
+    font-size: 0.8rem;
+    padding: 0.4rem;
+  }
+}

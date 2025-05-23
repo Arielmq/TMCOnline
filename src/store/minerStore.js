@@ -12,7 +12,7 @@ export const useMinerStore = create((set, get) => {
 
   return {
     miners: Array.isArray(initialMiners) ? initialMiners : [], // Estado principal
-    timestamp: initialTimestamp || new Date().toISOString(),
+    timestamp: initialTimestamp,
     tempMiners: [], // Estado temporal para acumular datos de todos los batches
     currentCycleId: null, // Identificador del ciclo actual
     batchCount: 0, // Contador de batches recibidos en el ciclo
@@ -22,9 +22,9 @@ export const useMinerStore = create((set, get) => {
         const cycleId = data.cycleId || data.timestamp;
         let { tempMiners, currentCycleId, batchCount } = state;
 
-        // Si es un nuevo ciclo, reiniciar tempMiners y batchCount
+        // Si es un nuevo ciclo, inicializar tempMiners con una copia de los mineros actuales
         if (currentCycleId !== cycleId) {
-          tempMiners = [...state.miners]; // Inicializar con datos actuales para evitar vacíos
+          tempMiners = [...state.miners]; // Mantener datos actuales
           currentCycleId = cycleId;
           batchCount = 0;
         }
@@ -63,10 +63,10 @@ export const useMinerStore = create((set, get) => {
           set((state) => {
             // Guardar en localStorage y actualizar estado principal
             localStorage.setItem('miners', JSON.stringify(state.tempMiners));
-            localStorage.setItem('miners_timestamp', state.timestamp);
+            localStorage.setItem('miners_timestamp', new Date().toISOString());
             return {
-              miners: state.tempMiners, // Reemplazar estado principal
-              timestamp: state.timestamp,
+              miners: state.tempMiners, // Reemplazar estado principal SOLO al final del ciclo
+              timestamp: new Date().toISOString(),
               tempMiners: [], // Limpiar estado temporal
               currentCycleId: null,
               batchCount: 0,
@@ -74,7 +74,7 @@ export const useMinerStore = create((set, get) => {
           });
         }, 5000); // Esperar 5 segundos de inactividad para considerar el ciclo completo
 
-        // Devolver estado intermedio sin actualizar miners
+        // Devolver estado intermedio sin modificar miners
         return {
           tempMiners: updatedTempMiners,
           currentCycleId,
