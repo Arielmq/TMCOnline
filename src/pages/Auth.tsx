@@ -33,7 +33,7 @@ const Auth = () => {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     }
   }, [user, navigate]);
 
