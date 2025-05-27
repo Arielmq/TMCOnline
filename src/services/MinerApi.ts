@@ -1,4 +1,3 @@
-// src/hooks/useMinerApi.ts
 import { useEffect } from 'react';
 import { MinerApiResponse } from '@/types/miner-api';
 import { toast } from 'sonner';
@@ -23,58 +22,54 @@ export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): 
 
   const connect = () => {
     try {
-      console.log('Conectando al servidor WebSocket:', WS_URL);
+      console.log('Connecting to WebSocket server:', WS_URL);
       socket = new WebSocket(WS_URL);
 
       socket.onopen = () => {
-        console.log('WebSocket conectado');
-        toast.success('Conectado al servidor de monitoreo');
+        console.log('WebSocket connected');
+        toast.success('Connected to monitoring server');
         reconnectInterval = 5000;
       };
 
       socket.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data);
+          console.log('Raw WebSocket data:', rawData);
           const data: MinerApiResponse = {
             ...rawData,
-            cycleId: rawData.cycleId || rawData.timestamp, // Usar cycleId o timestamp
+            cycleId: rawData.cycleId || rawData.timestamp,
+            miners: rawData.miners.map((miner) => ({
+              ...miner,
+              ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
+            })),
           };
-          console.log('Datos recibidos del WebSocket:', data);
+          console.log('Processed WebSocket data:', data);
 
-          // Actualizar la store
           useMinerStore.getState().updateMiners(data);
-
           callbacks.forEach((cb) => cb(data));
         } catch (error) {
-          console.error('Error al procesar mensaje del WebSocket:', error);
-       
+          console.error('Error processing WebSocket message:', error);
         }
       };
 
       socket.onclose = (event) => {
-        console.log('WebSocket cerrado. Código:', event.code, 'Razón:', event.reason);
-        console.log('Intentando reconexión en', reconnectInterval / 1000, 'segundos...');
-        
+        console.log('WebSocket closed. Code:', event.code, 'Reason:', event.reason);
+        console.log('Attempting reconnection in', reconnectInterval / 1000, 'seconds...');
         setTimeout(() => {
           connect();
         }, reconnectInterval);
-
         reconnectInterval = Math.min(reconnectInterval * 1.5, maxReconnectInterval);
       };
 
       socket.onerror = (error) => {
-        console.error('Error en WebSocket:', error);
-     
+        console.error('WebSocket error:', error);
         socket?.close();
       };
     } catch (error) {
-      console.error('Error al conectar con el WebSocket:', error);
-      
-
+      console.error('Error connecting to WebSocket:', error);
       setTimeout(() => {
         connect();
       }, reconnectInterval);
-
       reconnectInterval = Math.min(reconnectInterval * 1.5, maxReconnectInterval);
     }
   };
@@ -85,7 +80,6 @@ export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): 
     if (callback) {
       callbacks = callbacks.filter((cb) => cb !== callback);
     }
-
     if (callbacks.length === 0 && socket) {
       socket.close();
       socket = null;

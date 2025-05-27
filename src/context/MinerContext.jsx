@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useMinerApi } from '@/hooks/useMinerApi';
 
@@ -81,8 +80,189 @@ export const MinerProvider = ({ children }) => {
   const [selectedPanel, setSelectedPanel] = useState(null);
   const { data: minerApiData } = useMinerApi();
 
-  // Initialize locations from localStorage
+  // Validate minerApiData
+  const isValidMinerApiData = (data) => {
+    return (
+      data &&
+      Array.isArray(data.miners) &&
+      data.miners.length > 0 &&
+      data.miners.some((miner) => miner.ip && miner.status === 'fulfilled')
+    );
+  };
+
+  // Parse worker string
+  const parseWorker = (worker) => {
+    try {
+      const match = worker.match(/\.([ZATH])([A-D])(\d{3})/);
+      if (!match) {
+        console.warn(`Invalid worker: ${worker}`);
+        return null;
+      }
+      const [, locationLetter, panelLetter, slotStr] = match;
+      const location = locationMap[locationLetter];
+      const panel = panelMap[panelLetter];
+      const slot = parseInt(slotStr, 10);
+      if (slot < 1 || slot > 120) {
+        console.warn(`Slot out of range: ${slot} in worker ${worker}`);
+        return null;
+      }
+      return { location, panel, slot };
+    } catch (error) {
+      console.error(`Error parsing worker ${worker}:`, error);
+      return null;
+    }
+  };
+
+  // Process miner data incrementally
+  const processedLocations = useMemo(() => {
+    if (!minerApiData || !isValidMinerApiData(minerApiData)) {
+      console.log('No valid minerApiData, retaining previous locations');
+      return locations;
+    }
+
+    console.log('Processing minerApiData:', minerApiData);
+
+    // Create a deep copy of current locations to avoid mutating state directly
+    const newLocations = JSON.parse(JSON.stringify(locations));
+
+    // Process new miners
+    const convertedMiners = minerApiData.miners
+      .filter((apiMiner) => apiMiner.status === 'fulfilled')
+      .map((apiMiner, index) => {
+        const minerData = apiMiner.data || {};
+        const worker = minerData.pool?.worker || '';
+        const parsed = worker ? parseWorker(worker) : {
+          location: 'za',
+          panel: 'panel-a',
+          slot: index + 1
+        };
+
+        const hashrateAvg =
+          minerData.summary?.hashrateAvg ??
+          (minerData.hashboards?.reduce((sum, hb) => sum + (hb.hashrate || 0), 0) * 1e6) ??
+          0;
+
+        return {
+          IP: apiMiner.ip || 'N/A',
+          Status: minerData.hashboards?.some((b) => b.status !== 'Alive')
+            ? 'Warning'
+            : minerData.hashboards
+            ? 'Running'
+            : 'Stopped',
+          MinerType: minerData.minerInfo?.minerType || 'Unknown',
+          MACAddr: minerData.minerInfo?.macAddress || 'N/A',
+          THSRT: typeof hashrateAvg === 'number' ? hashrateAvg / 1e6 : 0,
+          THSAvg: typeof hashrateAvg === 'number' ? hashrateAvg / 1e6 : 0,
+          EnvTemp: minerData.summary?.envTemp ?? minerData.psu?.temperature ?? 0,
+          Efficiency: minerData.summary?.powerRate ?? 0,
+          Power: minerData.summary?.power ?? minerData.psu?.power ?? 0,
+          SpdIn: minerData.summary?.fanSpeedIn ?? minerData.psu?.fanSpeed ?? 0,
+          SpdOut: minerData.summary?.fanSpeedOut ?? minerData.psu?.fanSpeed ?? 0,
+          Worker1: worker || 'N/A',
+          ChipType: minerData.minerInfo?.serialNumber || 'N/A',
+          FreqAvg: minerData.hashboards?.[0]?.chipFrequency ?? 0,
+          HashBoardTemp: minerData.hashboards
+            ?.map((hb) => (hb.temperature ? hb.temperature.toFixed(1) : '0'))
+            .join('_') || '0',
+          Volt: minerData.psu?.voltage ?? 0,
+          Performance: 'Normal',
+          UpTime: minerData.summary?.elapsed && typeof minerData.summary.elapsed === 'number'
+            ? `${Math.floor(minerData.summary.elapsed / 86400)}d ${Math.floor(
+                (minerData.summary.elapsed % 86400) / 3600
+              )}:${Math.floor((minerData.summary.elapsed % 3600) / 60).toString().padStart(2, '0')}`
+            : 'N/A',
+          LastValidWork: minerData.timestamp ? new Date(minerData.timestamp).toLocaleString() : 'N/A',
+          PowerVersion: minerData.psu?.model || 'N/A',
+          ErrorCode: minerData.error || '',
+          VersionInfo: '',
+          RejectRate: minerData.pool?.['Pool Rejected%'] ?? 0,
+          ActivePool: '',
+          Elapsed: '',
+          Pool1: '',
+          Pool2: '',
+          Pool3: '',
+          Worker2: '',
+          Worker3: '',
+          location: parsed?.location || 'za',
+          panel: parsed?.panel || 'panel-a',
+          slot: parsed?.slot || index + 1,
+        };
+      });
+
+    if (convertedMiners.length === 0) {
+      console.warn('No valid miners to process, retaining previous locations');
+      return locations;
+    }
+
+    // Clear existing miners in panels to avoid duplicates
+    newLocations.forEach((location) => {
+      location.panels.forEach((panel) => {
+        panel.miners = [];
+      });
+    });
+
+    // Assign new miners to locations and panels
+    convertedMiners.forEach((miner) => {
+      const locationId = miner.location || 'za';
+      const panelId = miner.panel ? `${locationId}-${miner.panel}` : `${locationId}-panel-a`;
+      const slot = miner.slot || convertedMiners.indexOf(miner) + 1;
+
+      let location = newLocations.find((loc) => loc.id === locationId);
+      if (!location && locationId !== 'unknown') {
+        location = {
+          id: locationId,
+          name: locationId.charAt(0).toUpperCase() + locationId.slice(1),
+          panels: [
+            { id: `${locationId}-panel-a`, number: 'A', miners: [] },
+            { id: `${locationId}-panel-b`, number: 'B', miners: [] },
+            { id: `${locationId}-panel-c`, number: 'C', miners: [] },
+            { id: `${locationId}-panel-d`, number: 'D', miners: [] },
+          ],
+        };
+        newLocations.push(location);
+      }
+
+      if (location && panelId && slot) {
+        const panel = location.panels.find((p) => p.id === panelId);
+        if (panel) {
+          // Replace or add miner based on IP and slot
+          const existingMinerIndex = panel.miners.findIndex(
+            (m) => m.IP === miner.IP && m.slot === miner.slot
+          );
+          if (existingMinerIndex !== -1) {
+            panel.miners[existingMinerIndex] = miner;
+          } else {
+            panel.miners.push(miner);
+          }
+        }
+      }
+    });
+
+    // Sort miners by slot in each panel
+    newLocations.forEach((location) => {
+      location.panels.forEach((panel) => {
+        panel.miners.sort((a, b) => (a.slot || 0) - (b.slot || 0));
+      });
+    });
+
+    return newLocations;
+  }, [minerApiData, locations]);
+
+  // Update locations when processedLocations changes
   useEffect(() => {
+    if (processedLocations !== locations) {
+      setLocations(processedLocations);
+      console.log('Updated locations with processed data:', processedLocations);
+    }
+  }, [processedLocations]);
+
+  // Initialize locations from localStorage only if no WebSocket data
+  useEffect(() => {
+    if (minerApiData && isValidMinerApiData(minerApiData)) {
+      console.log('Skipping localStorage initialization due to available WebSocket data');
+      return;
+    }
+
     const savedMiners = localStorage.getItem('miners');
     if (savedMiners) {
       try {
@@ -182,177 +362,6 @@ export const MinerProvider = ({ children }) => {
         console.error('Error parsing localStorage miners:', error);
       }
     }
-  }, []);
-
-  // Validate minerApiData
-  const isValidMinerApiData = (data) => {
-    return (
-      data &&
-      Array.isArray(data.miners) &&
-      data.miners.length > 0 &&
-      data.miners.some((miner) => miner.ip && miner.status === 'fulfilled')
-    );
-  };
-
-  // Parse worker string
-  const parseWorker = (worker) => {
-    try {
-      const match = worker.match(/\.([ZATH])([A-D])(\d{3})/);
-      if (!match) {
-        console.warn(`Worker no válido: ${worker}`);
-        return null;
-      }
-      const [, locationLetter, panelLetter, slotStr] = match;
-      const location = locationMap[locationLetter];
-      const panel = panelMap[panelLetter];
-      const slot = parseInt(slotStr, 10);
-      if (slot < 1 || slot > 120) {
-        console.warn(`Slot fuera de rango: ${slot} en worker ${worker}`);
-        return null;
-      }
-      return { location, panel, slot };
-    } catch (error) {
-      console.error(`Error al parsear worker ${worker}:`, error);
-      return null;
-    }
-  };
-
-  // Update locations with miner data
-  useEffect(() => {
-    if (!minerApiData) {
-      console.log('No minerApiData received yet');
-      return;
-    }
-
-    console.log('Received minerApiData:', minerApiData);
-
-    if (!isValidMinerApiData(minerApiData)) {
-      console.warn('Invalid or incomplete minerApiData, retaining previous locations:', minerApiData);
-      return;
-    }
-
-    // Process miners
-    const convertedMiners = [];
-    minerApiData.miners.forEach((apiMiner, index) => {
-      if (apiMiner.status !== 'fulfilled') {
-        console.log(`Skipping miner ${apiMiner.ip}: status ${apiMiner.status}`);
-        return;
-      }
-
-      const minerData = apiMiner.data || {};
-      const worker = minerData.pool?.worker || '';
-      console.log(`Processing miner ${apiMiner.ip}, worker: ${worker}`); // Debug worker
-      const parsed = worker ? parseWorker(worker) : {
-        location: 'za',
-        panel: 'panel-a',
-        slot: index + 1
-      };
-
-      const hashrateAvg =
-        minerData.summary?.hashrateAvg ??
-        (minerData.hashboards?.reduce((sum, hb) => sum + (hb.hashrate || 0), 0) * 1e6) ??
-        0;
-
-      const convertedMiner = {
-        IP: minerData.ip || 'N/A',
-        Status: minerData.hashboards?.some((b) => b.status !== 'Alive')
-          ? 'Warning'
-          : minerData.hashboards
-          ? 'Running'
-          : 'Stopped',
-        MinerType: minerData.minerInfo?.minerType || 'Unknown',
-        MACAddr: minerData.minerInfo?.macAddress || 'N/A',
-        THSRT: typeof hashrateAvg === 'number' ? hashrateAvg / 1e6 : 0,
-        THSAvg: typeof hashrateAvg === 'number' ? hashrateAvg / 1e6 : 0,
-        EnvTemp: minerData.summary?.envTemp ?? minerData.psu?.temperature ?? 0,
-        Efficiency: minerData.summary?.powerRate ?? 0,
-        Power: minerData.summary?.power ?? minerData.psu?.power ?? 0,
-        SpdIn: minerData.summary?.fanSpeedIn ?? minerData.psu?.fanSpeed ?? 0,
-        SpdOut: minerData.summary?.fanSpeedOut ?? minerData.psu?.fanSpeed ?? 0,
-        Worker1: worker || 'N/A',
-        ChipType: minerData.minerInfo?.serialNumber || 'N/A',
-        FreqAvg: minerData.hashboards?.[0]?.chipFrequency ?? 0,
-        HashBoardTemp: minerData.hashboards
-          ?.map((hb) => (hb.temperature ? hb.temperature.toFixed(1) : '0'))
-          .join('_') || '0',
-        Volt: minerData.psu?.voltage ?? 0,
-        Performance: 'Normal',
-        UpTime: minerData.summary?.elapsed && typeof minerData.summary.elapsed === 'number'
-          ? `${Math.floor(minerData.summary.elapsed / 86400)}d ${Math.floor(
-              (minerData.summary.elapsed % 86400) / 3600
-            )}:${Math.floor((minerData.summary.elapsed % 3600) / 60).toString().padStart(2, '0')}`
-          : 'N/A',
-        LastValidWork: minerData.timestamp ? new Date(minerData.timestamp).toLocaleString() : 'N/A',
-        PowerVersion: minerData.psu?.model || 'N/A',
-        ErrorCode: minerData.error || '',
-        VersionInfo: '',
-        RejectRate: minerData.pool?.['Pool Rejected%'] ?? 0,
-        ActivePool: '',
-        Elapsed: '',
-        Pool1: '',
-        Pool2: '',
-        Pool3: '',
-        Worker2: '',
-        Worker3: '',
-        location: parsed?.location || 'za',
-        panel: parsed?.panel || 'panel-a',
-        slot: parsed?.slot || index + 1,
-      };
-
-      convertedMiners.push(convertedMiner);
-    });
-
-    // Only update locations if we have valid miners
-    if (convertedMiners.length === 0) {
-      console.warn('No valid miners to process, retaining previous locations');
-      return;
-    }
-
-    // Create new locations
-    const newLocations = createEmptyLocations();
-
-    // Assign miners to locations and panels
-    convertedMiners.forEach((miner) => {
-      const locationId = miner.location || 'za';
-      const panelId = miner.panel ? `${locationId}-${miner.panel}` : `${locationId}-panel-a`;
-      const slot = miner.slot || convertedMiners.indexOf(miner) + 1;
-
-      let location = newLocations.find((loc) => loc.id === locationId);
-      if (!location && locationId !== 'unknown') {
-        location = {
-          id: locationId,
-          name: locationId.charAt(0).toUpperCase() + locationId.slice(1),
-          panels: [
-            { id: `${locationId}-panel-a`, number: 'A', miners: [] },
-            { id: `${locationId}-panel-b`, number: 'B', miners: [] },
-            { id: `${locationId}-panel-c`, number: 'C', miners: [] },
-            { id: `${locationId}-panel-d`, number: 'D', miners: [] },
-          ],
-        };
-        newLocations.push(location);
-      }
-
-      if (location && panelId && slot) {
-        const panel = location.panels.find((p) => p.id === panelId);
-        if (panel) {
-          panel.miners.push(miner);
-        }
-      }
-    });
-
-    // Sort miners by slot in each panel
-    newLocations.forEach((location) => {
-      location.panels.forEach((panel) => {
-        panel.miners.sort((a, b) => (a.slot || 0) - (b.slot || 0));
-      });
-    });
-
-    // Update locations only with complete data
-    setLocations(newLocations);
-    console.log('Updated locations with complete data:', newLocations);
-
-    const totalMiners = convertedMiners.length;
- 
   }, [minerApiData]);
 
   const selectLocation = (locationId) => {
@@ -412,4 +421,4 @@ export function useMiner() {
     throw new Error('useMiner must be used within a MinerProvider');
   }
   return context;
-}
+};

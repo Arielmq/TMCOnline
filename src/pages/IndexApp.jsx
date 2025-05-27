@@ -1,4 +1,3 @@
-// src/pages/Index.jsx
 import MainLayout from "@/components/layout/MainLayout";
 import StatCard from "@/components/dashboard/StatCard";
 import Mining3DView from "@/components/dashboard/Mining3DView";
@@ -81,7 +80,7 @@ const Index = () => {
   // Process miner data when API data arrives
   useEffect(() => {
     if (data?.miners?.length) {
-      // build processedMiners
+      setIsLoading(false); // Set isLoading to false as soon as data arrives
       const pm = data.miners.map((m) => {
         if (m.status !== "fulfilled" || !m.data?.summary) {
           return {
@@ -112,11 +111,10 @@ const Index = () => {
         activeWorkers: countActiveWorkers(data.miners),
         avgTemperature: calculateAvgTemperature(data.miners),
       });
-      setIsLoading(false);
     }
   }, [data]);
 
-  if (isLoading) {
+  if (isLoading && !data?.miners?.length) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center min-h-screen">
@@ -136,7 +134,7 @@ const Index = () => {
       {showDemoPopup && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div
-          style={{backgroundColor:"#1A1A1A",border:"solid 2px white",borderRadius:"5px"}}
+            style={{backgroundColor:"#1A1A1A",border:"solid 2px white",borderRadius:"5px"}}
             ref={popupRef}
             className="bg-[#1A1A1A] text-white p-8 rounded-xl max-w-lg w-full mx-4 shadow-2xl"
           >

@@ -1,0 +1,17 @@
+.phantomButton{
+    background-image: url("https://res.cloudinary.com/dd6eoxgul/image/upload/v1748285116/phantom-removebg-preview_bxdiii.png");
+    background-size: 30px;
+    background-position: center;
+    width: 90px;
+    height: 37px;
+   border: solid 2px orange;
+    transition: background-size ease-in 1s;
+}
+
+.phantomButton:hover{
+   
+    background-size: 70px;
+      border: solid 3px rgba(255, 255, 255, 0.493);
+      
+
+}
