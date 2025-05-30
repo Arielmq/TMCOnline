@@ -18,7 +18,7 @@ interface TopBarProps {
 }
 
 const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
-  const { signOut, user } = useAuth();
+  const { logOut, user } = useAuth();
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
     // Primera carga
     fetchBtcPrice();
     // Actualizar cada 60 segundos
-    const intervalId = setInterval(fetchBtcPrice, 5_000);
+    const intervalId = setInterval(fetchBtcPrice, 10_000);
 
     return () => {
       isMounted = false;
@@ -72,9 +72,9 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
           <span>
             {btcPrice !== null
               ? btcPrice.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
               : "..."}
           </span>
         </div>
@@ -109,7 +109,7 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => signOut()}
+          onClick={() => logOut()}
           className="text-muted-foreground hover:text-destructive"
           title="Cerrar sesión"
         >

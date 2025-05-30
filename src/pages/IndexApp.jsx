@@ -8,37 +8,11 @@ import MinerApiMonitor from "@/components/miner-api/MinerApiMonitor";
 import { useEffect, useState, useRef } from "react";
 import { useMinerApi } from "@/hooks/useMinerApi";
 
-// Utility function to convert MHS to TH/s
+// Utilidades para stats
 const mhsToThs = (mhs) => (mhs / 1_000_000).toFixed(2);
 
-// Utility function to calculate average temperature
-const calculateAvgTemperature = (miners) => {
-  const valid = miners.filter(
-    (m) => m.status === "fulfilled" && m.data?.summary?.envTemp != null
-  );
-  if (valid.length === 0) return "N/A";
-  const sum = valid.reduce((acc, m) => acc + m.data.summary.envTemp, 0);
-  return `${(sum / valid.length).toFixed(1)}°C`;
-};
-
-// Utility function to count active workers
-const countActiveWorkers = (miners) => {
-  const active = miners.filter((m) => m.status === "fulfilled").length;
-  return `${active}/${miners.length}`;
-};
-
-// Utility function to calculate total hashrate
-const calculateTotalHashrate = (miners) => {
-  const valid = miners.filter(
-    (m) => m.status === "fulfilled" && m.data?.summary?.hashrateAvg != null
-  );
-  if (valid.length === 0) return "0 TH/s";
-  const total = valid.reduce((acc, m) => acc + m.data.summary.hashrateAvg, 0);
-  return `${mhsToThs(total)} TH/s`;
-};
-
 const Index = () => {
-  const { selectedPanel } = useMiner();
+  const { locations, selectedPanel } = useMiner();
   const { data } = useMinerApi();
   const [processedMiners, setProcessedMiners] = useState([]);
   const [stats, setStats] = useState({
@@ -77,44 +51,94 @@ const Index = () => {
     };
   }, [showDemoPopup]);
 
-  // Process miner data when API data arrives
+  // Procesar miners para stats y visualización
   useEffect(() => {
-    if (data?.miners?.length) {
-      setIsLoading(false); // Set isLoading to false as soon as data arrives
-      const pm = data.miners.map((m) => {
-        if (m.status !== "fulfilled" || !m.data?.summary) {
-          return {
-            name: `Miner ${m.ip}`,
-            hashrate: "0 TH/s",
-            status: "error",
-            temperature: "N/A",
-            efficiency: "N/A",
-          };
-        }
-        const { summary, ip } = m.data;
-        const hr = summary.hashrateAvg ? mhsToThs(summary.hashrateAvg) : "0";
-        const status = summary.hashrateAvg > 0 ? "active" : "warning";
-        const temp = summary.envTemp != null ? `${summary.envTemp.toFixed(1)}°C` : "N/A";
-        const eff = summary.powerRate != null ? `${summary.powerRate.toFixed(1)} J/TH` : "N/A";
-        return {
-          name: `WhatsMiner ${ip}`,
-          hashrate: `${hr} TH/s`,
-          status,
-          temperature: temp,
-          efficiency: eff,
-        };
-      });
-
-      setProcessedMiners(pm);
+    if (!data?.miners?.length || !locations.length) {
+      setIsLoading(false);
+      setProcessedMiners([]);
       setStats({
-        totalHashrate: calculateTotalHashrate(data.miners),
-        activeWorkers: countActiveWorkers(data.miners),
-        avgTemperature: calculateAvgTemperature(data.miners),
+        totalHashrate: "0 TH/s",
+        activeWorkers: "0/0",
+        avgTemperature: "N/A",
       });
+      return;
     }
-  }, [data]);
 
-  if (isLoading && !data?.miners?.length) {
+    // 1. Crear lista de todos los miners definidos por el usuario (con lugar y panel)
+    const allUserMiners = [];
+    locations.forEach((loc) => {
+      loc.panels.forEach((panel) => {
+        panel.miners.forEach((miner) => {
+          allUserMiners.push({
+            ...miner,
+            location: loc.name,
+            panel: panel.number,
+          });
+        });
+      });
+    });
+
+    // 2. Para cada miner, buscar su info en la API por IP
+    const minersWithApi = allUserMiners.map((miner) => {
+      const apiMiner = data.miners.find(
+        (m) => m.ip === miner.IP || m.data?.ip === miner.IP
+      );
+      if (apiMiner && apiMiner.status === "fulfilled" && apiMiner.data?.summary) {
+        const { summary } = apiMiner.data;
+        return {
+          ...miner,
+          status: summary.hashrateAvg > 0 ? "active" : "offline",
+          hashrate: summary.hashrateAvg ? `${mhsToThs(summary.hashrateAvg)} TH/s` : "0 TH/s",
+          temperature: summary.envTemp != null ? `${summary.envTemp.toFixed(1)}°C` : "N/A",
+        };
+      }
+      return {
+        ...miner,
+        status: "offline",
+        hashrate: "0 TH/s",
+        temperature: "N/A",
+      };
+    });
+
+    setProcessedMiners(minersWithApi);
+
+    // 3. Stats
+    const active = minersWithApi.filter((m) => m.status === "active");
+    const totalHashrate = minersWithApi.reduce(
+      (acc, m) => acc + parseFloat(m.hashrate), 0
+    );
+    const avgTemp =
+      active.length > 0
+        ? (
+            active.reduce(
+              (acc, m) =>
+                acc +
+                (parseFloat(m.temperature) || 0),
+              0
+            ) / active.length
+          ).toFixed(1) + "°C"
+        : "N/A";
+
+    setStats({
+      totalHashrate:
+        minersWithApi.length > 0
+          ? minersWithApi
+              .reduce(
+                (acc, m) =>
+                  acc +
+                  (parseFloat(m.hashrate) || 0),
+                0
+              )
+              .toFixed(2) + " TH/s"
+          : "0 TH/s",
+      activeWorkers: `${active.length}/${minersWithApi.length}`,
+      avgTemperature: avgTemp,
+    });
+
+    setIsLoading(false);
+  }, [locations, data]);
+
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center min-h-screen">
@@ -134,7 +158,7 @@ const Index = () => {
       {showDemoPopup && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div
-            style={{backgroundColor:"#1A1A1A",border:"solid 2px white",borderRadius:"5px"}}
+            style={{ backgroundColor: "#1A1A1A", border: "solid 2px white", borderRadius: "5px" }}
             ref={popupRef}
             className="bg-[#1A1A1A] text-white p-8 rounded-xl max-w-lg w-full mx-4 shadow-2xl"
           >
@@ -176,6 +200,11 @@ const Index = () => {
           value={stats.avgTemperature}
           icon={<Thermometer className="h-5 w-5 text-status-warning" />}
         />
+        <StatCard
+          title="Total Hashrate"
+          value={stats.totalHashrate}
+          icon={<Activity className="h-5 w-5 text-tmcblue-light" />}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -188,26 +217,36 @@ const Index = () => {
             <Card style={{ height: "600px" }} className="p-4 bg-tmcdark-card border-border">
               <h3 className="font-medium text-lg mb-3">Recent Activity</h3>
               <div style={{ overflow: "auto", height: "500px" }} className="space-y-2 text-sm">
-                {processedMiners.map((miner, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center p-2 rounded bg-tmcdark"
-                  >
-                    <span className="flex items-center">
-                      {miner.status === "active" ? (
-                        <Activity className="h-4 w-4 mr-2 text-status-success" />
-                      ) : (
-                        <ArrowDown className="h-4 w-4 mr-2 text-status-danger" />
-                      )}
-                      {miner.name} {miner.status === "active" ? "online" : "offline"}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {data.timestamp
-                        ? new Date(data.timestamp).toLocaleTimeString()
-                        : "N/A"}
-                    </span>
+                {processedMiners.length === 0 ? (
+                  <div className="text-center text-muted-foreground mt-10">
+                    No miners found.
                   </div>
-                ))}
+                ) : (
+                  processedMiners.map((miner, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center p-2 rounded bg-tmcdark"
+                    >
+                      <span className="flex items-center">
+                        {miner.status === "active" ? (
+                          <Activity className="h-4 w-4 mr-2 text-status-success" />
+                        ) : (
+                          <ArrowDown className="h-4 w-4 mr-2 text-status-danger" />
+                        )}
+                        {miner.Worker1 || miner.IP || miner.name}{" "}
+                        {miner.status === "active" ? "online" : "offline"}
+                        {miner.location && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({miner.location} - Panel {miner.panel})
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {miner.temperature}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>

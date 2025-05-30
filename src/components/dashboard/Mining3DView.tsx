@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import MinerVisualization from "./MinerVisualization";
 import "./Mining3dView.css";
-
+import { useMinerApi } from "@/hooks/useMinerApi";
 type FilterType = "all" | "online";
 
 const Mining3DView = () => {
+  const { data: minerApiData } = useMinerApi();
+  const wsMiners = minerApiData?.miners || [];
   const navigate = useNavigate();
   const { locations, selectLocation } = useMiner();
   const [displayedLocations, setDisplayedLocations] = useState<LocationData[]>([]);
@@ -21,6 +23,45 @@ const Mining3DView = () => {
   const [selectedMiner, setSelectedMiner] = useState<MinerData | null>(null);
   const [selectedPanel, setSelectedPanel] = useState<PanelData | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
+
+  // Helper para combinar datos del WebSocket con los del minero del panel
+  const getMinerWithWSData = (miner) => {
+    const wsData = wsMiners.find((m) => m.ip === miner.IP && m.status === "fulfilled");
+    if (!wsData || !wsData.data) return { ...miner, THSRT: 0 }; // o los campos vacíos
+    const data = wsData.data;
+
+    // Type guard: check if data has 'minerInfo' property
+    if (!('minerInfo' in data)) {
+      return { ...miner, THSRT: 0 };
+    }
+
+    const thsrtSum = (data.hashboards || [])
+      .slice(0, 3)
+      .reduce((acc, hb) => acc + Math.floor((hb.hashrate || 0) / 1_000_000), 0);
+
+    return {
+      ...miner,
+      Status: "Running",
+      MinerType: data.minerInfo?.minerType || "",
+      MACAddr: data.minerInfo?.macAddress || "N/A",
+      VersionInfo: data.psu?.model || "N/A",
+      ChipType: data.psu?.model || "N/A",
+      HashBoardTemp: data.hashboards?.[0]?.temperature ?? "N/A",
+      SpdIn: data.summary?.fanSpeedIn ?? "N/A",
+      SpdOut: data.summary?.fanSpeedOut ?? "N/A",
+      ActivePool: data.pool?.worker || "N/A",
+      Worker1: data.pool?.worker || "N/A",
+      // RejectRate: data.pool?.rejectRate ?? "N/A", // Property does not exist on PoolInfo
+      RejectRate: "N/A",
+      THSRT: thsrtSum,
+      THSAvg: data.summary?.hashrateAvg ?? "",
+      Efficiency: data.summary?.powerRate ?? "",
+      Power: data.summary?.power ?? "",
+      EnvTemp: data.hashboards?.[0]?.temperature ?? "",
+      UpTime: data.summary?.elapsed ?? "",
+      Performance: data.summary?.hashrateAvg ?? "",
+    };
+  };
 
   // Validate if locations data is complete
   const isValidLocationsData = (locations: LocationData[]): boolean => {
@@ -42,39 +83,29 @@ const Mining3DView = () => {
     );
   };
 
-  // Update displayed locations only when complete data is received
   useEffect(() => {
-    console.log("Received locations:", locations);
     if (isValidLocationsData(locations)) {
       setDisplayedLocations(locations);
-      console.log("Updated displayedLocations with complete data:", locations);
-    } else {
-      console.warn("Incomplete or invalid locations data, retaining previous data:", locations);
     }
   }, [locations]);
 
-  // Handle location selection
   const handleLocationSelect = (location: LocationData) => {
     setSelectedLocation(location);
     selectLocation(location.id);
   };
 
-  // Handle panel click
   const handlePanelClick = (panel: PanelData) => {
     setSelectedPanel(panel);
   };
 
-  // Close panel view
   const handleClosePanel = () => {
     setSelectedPanel(null);
   };
 
-  // Handle miner click
   const handleMinerClick = (miner: MinerData) => {
     setSelectedMiner(miner);
   };
 
-  // Get a status color for a miner based on its properties
   const getMinerStatusColor = (miner: MinerData) => {
     if (miner.THSRT === 0) {
       return "bg-[#ea384c]";
@@ -95,51 +126,49 @@ const Mining3DView = () => {
     return 'text-green-500';
   };
 
-  // Filter miners based on selected filter
+  // Filtra mineros por THSRT > 0
   const filterMiners = (miners: MinerData[]): MinerData[] => {
     if (filter === "all") return miners.filter(miner => miner.THSRT > 0);
     if (filter === "online") {
-      return miners.filter((miner) => miner.THSRT > 0); // Mostrar todos los mineros con THSRT > 0
+      return miners.filter((miner) => miner.THSRT > 0);
     }
     return miners.filter(miner => miner.THSRT > 0);
   };
 
-  // Count miners by status for a location
+  // Cuenta mineros online/total para una ubicación
   const countMinersByStatus = (location: LocationData) => {
     let online = 0;
     let total = 0;
-
     location.panels.forEach((panel) => {
       panel.miners.forEach((miner) => {
         if (miner.THSRT > 0) {
           total++;
-          online++; // Todos los mineros con THSRT > 0 se consideran "online"
+          online++;
         }
       });
     });
-
     return { online, total };
   };
 
-  // Count miners by status for a panel
+  // Cuenta mineros online/total para un panel
   const countPanelMinersByStatus = (panel: PanelData) => {
     let online = 0;
     let total = 0;
-
     panel.miners.forEach((miner) => {
       if (miner.THSRT > 0) {
         total++;
-        online++; // Todos los mineros con THSRT > 0 se consideran "online"
+        online++;
       }
     });
-
     return { online, total };
   };
 
-  // If a panel is selected, show the miners in that panel
+  // Si hay panel seleccionado, muestra los mineros de ese panel
   if (selectedPanel) {
-    const filteredMiners = filterMiners(selectedPanel.miners);
-    const counts = countPanelMinersByStatus(selectedPanel);
+    // Mapea los mineros del panel con los datos del WebSocket
+    const minersWithWSData = selectedPanel.miners.map(getMinerWithWSData);
+    const filteredMiners = filterMiners(minersWithWSData);
+    const counts = countPanelMinersByStatus({ ...selectedPanel, miners: minersWithWSData });
 
     return (
       <div className="col-span-3 row-span-2">
@@ -193,7 +222,7 @@ const Mining3DView = () => {
     );
   }
 
-  // Standard view showing locations and panels
+  // Vista estándar mostrando ubicaciones y paneles
   return (
     <div className="mining3d__panel col-span-2 row-span-2">
       <h3 className="text-lg font-medium mb-2">Mining Farm Overview</h3>
@@ -250,7 +279,9 @@ const Mining3DView = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       {location.panels.map((panel) => {
-                        const filteredMiners = filterMiners(panel.miners);
+                        // Mapea los mineros del panel con los datos del WebSocket
+                        const minersWithWSData = panel.miners.map(getMinerWithWSData);
+                        const filteredMiners = filterMiners(minersWithWSData);
 
                         // Skip panels with no miners after filtering
                         if (filteredMiners.length === 0 && filter !== "all") {
@@ -273,7 +304,7 @@ const Mining3DView = () => {
                             <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
                               <div className="grid grid-cols-10 grid-rows-6 gap-[2px] h-full">
                                 {Array.from({ length: 60 }).map((_, index) => {
-                                  const miner = panel.miners[index];
+                                  const miner = minersWithWSData[index];
                                   const hasValidMiner = !!miner && filterMiners([miner]).length > 0;
 
                                   let thsValue = miner ? Math.round(miner.THSRT) : 0;

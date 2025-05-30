@@ -160,7 +160,7 @@ const MinerPopup = ({ open, onClose, miner }: MinerPopupProps) => {
                     <span className="model-name">{miner.MinerType.split('_')[0]}</span>
                   </div>
                   <div className="temperature-display">
-                    <span>{temperature}°C</span>
+                    <span>{miner.EnvTemp ?? miner.HashBoardTemp ?? "--"}°C</span>
                   </div>
                 </div>
 
@@ -218,7 +218,7 @@ const MinerPopup = ({ open, onClose, miner }: MinerPopupProps) => {
 
                 {/* Bottom section */}
                 <div className="bottom-section">
-                  <span className="hashrate-label">M.a.c.d</span>
+                  <span className="hashrate-label">MAC {miner.MACAddr}</span>
                 </div>
               </div>
               
@@ -264,7 +264,7 @@ const MinerPopup = ({ open, onClose, miner }: MinerPopupProps) => {
                         <p className="text-sm text-muted-foreground">Status</p>
                         <div className="flex items-center gap-2">
                           <div className={`w-3 h-3 rounded-full ${
-                            miner.Status === "Running" ? "bg-white" : 
+                            miner.Status === "Running" ? "bg-green-500": 
                             miner.Status === "Warning" || miner.Status === "ToolVerLower" ? "bg-[#FEF7CD]" : 
                             "bg-[#ea384c]"
                           }`} />

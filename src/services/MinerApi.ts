@@ -1,15 +1,20 @@
+// minerApi.ts
 import { useEffect } from 'react';
 import { MinerApiResponse } from '@/types/miner-api';
 import { toast } from 'sonner';
 import { useMinerStore } from '@/store/minerStore';
+import { useMiner } from '@/context/MinerContext';
 
-const WS_URL = 'wss://tmcwatch.loca.lt';
+const WS_URL = 'ws://tmcwatch.loca.lt';
 let socket: WebSocket | null = null;
 let reconnectInterval = 5000;
 const maxReconnectInterval = 50000;
 let callbacks: ((data: MinerApiResponse) => void)[] = [];
 
-export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): () => void {
+export function connectToMinerAPI(
+  locations: any[],
+  callback?: (data: MinerApiResponse) => void
+): () => void {
   if (callback) {
     callbacks.push(callback);
   }
@@ -20,41 +25,92 @@ export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): 
     };
   }
 
+  const getFrontendIPs = () => {
+    if (!Array.isArray(locations)) {
+      console.error('Locations no es un arreglo:', locations);
+      toast.error('Error: No se pudieron obtener las IPs de los mineros');
+      return [];
+    }
+    const ips = locations.flatMap(loc =>
+      Array.isArray(loc.panels)
+        ? loc.panels.flatMap(panel =>
+            Array.isArray(panel.miners)
+              ? panel.miners.map(miner => miner.IP)
+              : []
+          )
+        : []
+    );
+    console.log('IPs del frontend obtenidas:', ips);
+    return ips;
+  };
+
   const connect = () => {
     try {
-      console.log('Connecting to WebSocket server:', WS_URL);
+      console.log('Conectando al servidor WebSocket:', WS_URL);
       socket = new WebSocket(WS_URL);
 
       socket.onopen = () => {
-        console.log('WebSocket connected');
-        toast.success('Connected to monitoring server');
+        console.log('WebSocket conectado');
+        toast.success('Conectado al servidor de monitoreo');
         reconnectInterval = 5000;
+        setTimeout(() => {
+          console.log('Listo para recibir datos del WebSocket. IPs:', getFrontendIPs());
+        }, 2000);
       };
 
       socket.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data);
-          console.log('Raw WebSocket data:', rawData);
+          console.log('Datos crudos del WebSocket:', JSON.stringify(rawData, null, 2));
+
+          if (rawData.error) {
+            console.error('Error recibido del WebSocket:', rawData.error);
+            toast.error(`Error del servidor: ${rawData.error}`);
+            return;
+          }
+
+          if (!Array.isArray(rawData.miners)) {
+            console.warn('rawData.miners no es un arreglo:', rawData.miners);
+            return;
+          }
+
+          const frontendIPs = getFrontendIPs();
+          const filteredMiners = rawData.miners.filter(miner => frontendIPs.includes(miner.ip));
+          const rejectedMiners = rawData.miners.filter(miner => miner.status === 'rejected');
+          if (rejectedMiners.length > 0) {
+            console.warn('Miners rechazados:', rejectedMiners);
+            rejectedMiners.forEach(miner => {
+              toast.error(`Error en IP ${miner.ip}: ${miner.data.error}`);
+            });
+          }
+
           const data: MinerApiResponse = {
             ...rawData,
-            cycleId: rawData.cycleId || rawData.timestamp,
-            miners: rawData.miners.map((miner) => ({
+            cycleId: rawData.cycleId || rawData.timestamp || Date.now().toString(),
+            miners: filteredMiners.map((miner) => ({
               ...miner,
               ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
             })),
           };
-          console.log('Processed WebSocket data:', data);
+          console.log('Datos procesados del WebSocket:', data);
 
-          useMinerStore.getState().updateMiners(data);
-          callbacks.forEach((cb) => cb(data));
+          if (data.miners.length > 0) {
+            useMinerStore.getState().updateMiners(data);
+            callbacks.forEach((cb) => cb(data));
+          } else {
+            console.log('No se recibieron datos válidos para las IPs:', frontendIPs);
+            if (frontendIPs.length > 0) {
+              toast.warning('No se recibieron datos para las IPs configuradas');
+            }
+          }
         } catch (error) {
-          console.error('Error processing WebSocket message:', error);
+          console.error('Error procesando mensaje del WebSocket:', error);
         }
       };
 
       socket.onclose = (event) => {
-        console.log('WebSocket closed. Code:', event.code, 'Reason:', event.reason);
-        console.log('Attempting reconnection in', reconnectInterval / 1000, 'seconds...');
+        console.log('WebSocket cerrado. Código:', event.code, 'Razón:', event.reason);
+        console.log('Intentando reconexión en', reconnectInterval / 1000, 'segundos...');
         setTimeout(() => {
           connect();
         }, reconnectInterval);
@@ -62,11 +118,11 @@ export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): 
       };
 
       socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('Error en WebSocket:', error);
         socket?.close();
       };
     } catch (error) {
-      console.error('Error connecting to WebSocket:', error);
+      console.error('Error conectando al WebSocket:', error);
       setTimeout(() => {
         connect();
       }, reconnectInterval);
@@ -88,13 +144,19 @@ export function connectToMinerAPI(callback?: (data: MinerApiResponse) => void): 
 }
 
 export function useMinerApi() {
+  const { locations } = useMiner();
   const miners = useMinerStore((state) => state.miners);
   const timestamp = useMinerStore((state) => state.timestamp);
 
   useEffect(() => {
-    const unsubscribe = connectToMinerAPI();
+    console.log('Iniciando conexión WebSocket con locations:', locations);
+    if (!Array.isArray(locations)) {
+      console.error('Locations no es un arreglo en useMinerApi:', locations);
+      return;
+    }
+    const unsubscribe = connectToMinerAPI(locations);
     return () => unsubscribe();
-  }, []);
+  }, [locations]);
 
   return {
     data: {
