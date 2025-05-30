@@ -4,6 +4,7 @@ import { useMiner } from '@/context/MinerContext';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle } from 'lucide-react';
+import { useMinerApi } from "@/hooks/useMinerApi";
 
 // Convertir hashrate a una forma legible
 const formatHashrate = (hashrate) => {
@@ -36,6 +37,9 @@ const formatPower = (power) => {
 };
 
 export function MinerApiMonitor() {
+  const { data } = useMinerApi();
+  const wsMiners = data?.miners || [];
+  
   const { locations, selectedLocation, selectedPanel } = useMiner();
   const [totalHashrate, setTotalHashrate] = useState(0);
   const [totalPower, setTotalPower] = useState(0);

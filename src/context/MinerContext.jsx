@@ -91,50 +91,79 @@ export const MinerProvider = ({ children }) => {
   };
 
   // Agregar ubicación
-  const addLocation = async ({ name, panelsCount }) => {
-    if (!user) return;
-    const colRef = collection(db, "users", user.uid, "locations");
-    const id = crypto.randomUUID();
-    const newLocation = {
-      id,
-      name,
-      panels: Array.from({ length: panelsCount }, (_, i) => ({
+  const addLocation = async ({ name, panelsCount, minersPerPanel }) => {
+  if (!user) return;
+  const colRef = collection(db, "users", user.uid, "locations");
+  const id = crypto.randomUUID();
+  const newLocation = {
+    id,
+    name,
+    minersPerPanel, // <-- guarda el campo
+    panels: Array.from({ length: panelsCount }, (_, i) => ({
+      id: crypto.randomUUID(),
+      number: i + 1,
+      miners: Array.from({ length: minersPerPanel }, () => ({
         id: crypto.randomUUID(),
-        number: i + 1,
-        miners: [],
+        IP: "",
       })),
-    };
-    await setDoc(doc(colRef, id), newLocation);
-    return newLocation;
+    })),
   };
-
+  await setDoc(doc(colRef, id), newLocation);
+  return newLocation;
+};
   // Agregar minero(s)
   const addMiner = async ({ locationId, panelId, ips }) => {
-    if (!user) return;
-    const locationRef = doc(db, "users", user.uid, "locations", locationId);
-    const locationSnap = await getDoc(locationRef);
-    if (!locationSnap.exists()) return;
+  if (!user) return;
+  const locationRef = doc(db, "users", user.uid, "locations", locationId);
+  const locationSnap = await getDoc(locationRef);
+  if (!locationSnap.exists()) return;
 
-    const locationData = locationSnap.data();
-    const panels = locationData.panels.map(panel => {
-      if (panel.id === panelId) {
-        return {
-          ...panel,
-          miners: [
-            ...panel.miners,
-            ...ips.map(ip => ({
-              id: crypto.randomUUID(),
-              IP: ip,
-            })),
-          ],
-        };
+  const locationData = locationSnap.data();
+  const maxSlots = locationData.minersPerPanel || 60;
+  const panels = locationData.panels.map(panel => {
+    if (panel.id === panelId) {
+      // Copia los mineros para no mutar el array original
+      let miners = [...panel.miners];
+      let ipIndex = 0;
+
+      // Reemplaza slots vacíos primero
+      for (let i = 0; i < miners.length && ipIndex < ips.length; i++) {
+        if (!miners[i].IP || miners[i].IP.trim() === "") {
+          miners[i] = { ...miners[i], IP: ips[ipIndex] };
+          ipIndex++;
+        }
       }
-      return panel;
-    });
 
-    await updateDoc(locationRef, { panels });
-    // NO actualices setLocations aquí, el onSnapshot lo hará en tiempo real
-  };
+      // NO agregar más slots si ya llegaste al máximo
+      // Si quedan IPs sin asignar, simplemente las ignoras (o puedes mostrar un toast de "panel lleno")
+
+      // Si por algún motivo hay menos slots que maxSlots (no debería pasar), rellena con slots vacíos
+      if (miners.length < maxSlots) {
+        miners = [
+          ...miners,
+          ...Array.from({ length: maxSlots - miners.length }, () => ({
+            id: crypto.randomUUID(),
+            IP: "",
+          })),
+        ];
+      }
+
+      // Si hay más slots de los que corresponde (por error anterior), recorta
+      if (miners.length > maxSlots) {
+        miners = miners.slice(0, maxSlots);
+      }
+
+      return {
+        ...panel,
+        miners,
+      };
+    }
+    return panel;
+  });
+
+  await updateDoc(locationRef, { panels });
+  // El onSnapshot actualizará el estado global
+};
 
   // Eliminar minero
   const deleteMiner = async ({ locationId, panelId, minerId }) => {

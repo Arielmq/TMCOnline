@@ -26,6 +26,8 @@ const Mining3DView = () => {
 
   // Helper para combinar datos del WebSocket con los del minero del panel
   const getMinerWithWSData = (miner) => {
+
+    
     const wsData = wsMiners.find((m) => m.ip === miner.IP && m.status === "fulfilled");
     if (!wsData || !wsData.data) return { ...miner, THSRT: 0 }; // o los campos vacíos
     const data = wsData.data;
@@ -39,10 +41,12 @@ const Mining3DView = () => {
       .slice(0, 3)
       .reduce((acc, hb) => acc + Math.floor((hb.hashrate || 0) / 1_000_000), 0);
 
+     
+      
     return {
       ...miner,
       Status: "Running",
-      MinerType: data.minerInfo?.minerType || "",
+      MinerType: data.minerInfo?.minerType || "none",
       MACAddr: data.minerInfo?.macAddress || "N/A",
       VersionInfo: data.psu?.model || "N/A",
       ChipType: data.psu?.model || "N/A",
@@ -277,7 +281,7 @@ const Mining3DView = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4 max-[1366px]:grid-cols-1" style={{ gridTemplateColumns: undefined }}>
                       {location.panels.map((panel) => {
                         // Mapea los mineros del panel con los datos del WebSocket
                         const minersWithWSData = panel.miners.map(getMinerWithWSData);
@@ -301,26 +305,37 @@ const Mining3DView = () => {
                               </span>
                             </div>
 
-                            <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
-                              <div className="grid grid-cols-10 grid-rows-6 gap-[2px] h-full">
-                                {Array.from({ length: 60 }).map((_, index) => {
-                                  const miner = minersWithWSData[index];
-                                  const hasValidMiner = !!miner && filterMiners([miner]).length > 0;
 
-                                  let thsValue = miner ? Math.round(miner.THSRT) : 0;
+                            <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
+                              <div
+                                className="grid h-full"
+                                style={{
+                                  gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(panel.miners.length || 60))}, 1fr)`,
+                                  gridTemplateRows: `repeat(${Math.ceil((panel.miners.length || 60) / Math.ceil(Math.sqrt(panel.miners.length || 60)))}, 1fr)`,
+                                  gap: "2px",
+                                }}
+                              >
+                                {Array.from({ length: panel.miners.length || 60 }).map((_, index) => {
+                                  // Mapea el slot con los datos del WebSocket
+                                  const miner = panel.miners[index];
+                                  const minerWithWS = miner ? getMinerWithWSData(miner) : null;
+                                  const hasValidMiner = minerWithWS && minerWithWS.IP && minerWithWS.IP.trim() !== "";
+
+                                  // El valor debe ser el hashrate real (THSRT) si existe
+                                  let thsValue = hasValidMiner && minerWithWS.THSRT ? Math.round(minerWithWS.THSRT) : 0;
                                   if (!Number.isFinite(thsValue) || thsValue > 999) thsValue = 0;
 
-                                  let textClass = '';
-                                  let shadow = '';
-                                  let bgClass = hasValidMiner ? 'bg-white/40' : 'bg-white/10';
+                                  let textClass = "";
+                                  let shadow = "";
+                                  let bgClass = hasValidMiner ? "bg-white/40" : "bg-white/10";
 
                                   if (hasValidMiner) {
                                     if (thsValue <= 80) {
-                                      textClass = 'text-yellow-500';
-                                      shadow = '0 0 10px rgba(234, 179, 8, 0.6)';
+                                      textClass = "text-yellow-500";
+                                      shadow = "0 0 10px rgba(234, 179, 8, 0.6)";
                                     } else {
-                                      textClass = 'text-green-500';
-                                      shadow = '0 0 10px rgba(34, 197, 94, 0.6)';
+                                      textClass = "text-green-500";
+                                      shadow = "0 0 10px rgba(34, 197, 94, 0.6)";
                                     }
                                   }
 
@@ -329,20 +344,32 @@ const Mining3DView = () => {
                                       key={index}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (hasValidMiner) handleMinerClick(miner);
+                                        if (hasValidMiner) handleMinerClick(minerWithWS);
                                       }}
-                                      title={miner && hasValidMiner ? `${miner.IP} – ${miner.MinerType}` : 'Empty Slot'}
+                                      title={
+                                        hasValidMiner
+                                          ? `${minerWithWS.IP} – ${minerWithWS.MinerType || ""}`
+                                          : "Empty Slot"
+                                      }
                                       className={`
-                                        w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
-                                        ${bgClass}
-                                        flex items-center justify-center overflow-hidden
-                                        ${hasValidMiner ? 'cursor-pointer' : 'cursor-default'}
-                                      `}
+            w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
+            ${bgClass}
+            flex items-center justify-center overflow-hidden
+            ${hasValidMiner ? "cursor-pointer" : "cursor-default"}
+          `}
                                     >
                                       {hasValidMiner && (
                                         <span
-                                          className={`text-lg xl:text-2xl font-bold leading-none mining3d__span ${textClass}`}
-                                          style={{ textShadow: shadow }}
+                                          className={`font-bold leading-none mining3d__span ${textClass}`}
+                                          style={{
+                                            textShadow: shadow,
+                                            fontSize: "clamp(0.5rem, 1.2vw, 1rem)", // Más pequeño para 3 cifras
+                                            width: "100%",
+                                            textAlign: "center",
+                                            overflow: "hidden",
+                                            display: "block",
+                                            lineHeight: 1,
+                                          }}
                                         >
                                           {thsValue}
                                         </span>

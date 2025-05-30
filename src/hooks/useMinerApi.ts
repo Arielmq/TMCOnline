@@ -3,6 +3,7 @@ import { connectToMinerAPI } from '@/services/MinerApi';
 import { MinerApiResponse, MinerApiData, isMinerApiData } from '@/types/miner-api';
 import { useMiner } from '@/context/MinerContext';
 
+
 export function useMinerApi() {
   const { locations } = useMiner();
   const [data, setData] = useState<MinerApiResponse | null>(null);
@@ -44,20 +45,36 @@ export function useMinerApi() {
     }
   }, [locations]);
 
-   useEffect(() => {
-    setLoading(true);
-    const safeLocations = Array.isArray(locations) ? locations : [];
-    const disconnect = connectToMinerAPI(safeLocations, (newData: MinerApiResponse) => {
-      if (newData && newData.miners && Array.isArray(newData.miners) && newData.miners.length > 0) {
-        setData(newData);
+useEffect(() => {
+  setLoading(true);
+  const safeLocations = Array.isArray(locations) ? locations : [];
+  const disconnect = connectToMinerAPI(safeLocations, (newData: MinerApiResponse) => {
+    setData(prevData => {
+      if (
+        newData &&
+        newData.miners &&
+        Array.isArray(newData.miners) &&
+        newData.miners.length > 0
+      ) {
+        // Merge por IP
+        const prevMiners = prevData?.miners || [];
+        const minerMap = new Map(prevMiners.map(m => [m.ip, m]));
+        newData.miners.forEach(apiMiner => {
+          minerMap.set(apiMiner.ip, apiMiner);
+        });
+        return {
+          ...newData,
+          miners: Array.from(minerMap.values()),
+        };
       } else {
-        if (!data) setError(new Error("No se recibieron datos de mineros"));
+        if (!prevData) setError(new Error("No se recibieron datos de mineros"));
+        return prevData;
       }
-      setLoading(false);
     });
-    return () => disconnect();
-  }, [locations]);
-
+    setLoading(false);
+  });
+  return () => disconnect();
+}, [locations]);
 
 
   // Función auxiliar para encontrar un minero por IP

@@ -2,10 +2,11 @@ import { create } from 'zustand';
 
 export const useMinerStore = create((set, get) => {
   // Cargar datos iniciales desde localStorage
-  const savedMiners = localStorage.getItem('miners');
+ const savedMiners = localStorage.getItem('miners');
   const initialMiners = savedMiners ? JSON.parse(savedMiners) : [];
 
-  return {
+   return {
+    
     miners: Array.isArray(initialMiners) ? initialMiners : [],
     timestamp: new Date().toISOString(),
     updateMiners: (data) => {
@@ -35,8 +36,6 @@ export const useMinerStore = create((set, get) => {
         // Guardar en localStorage
         localStorage.setItem('miners', JSON.stringify(updatedMiners));
         localStorage.setItem('miners_timestamp', new Date().toISOString());
-
-        console.log('Updated miners:', updatedMiners.length);
 
         return {
           miners: updatedMiners,

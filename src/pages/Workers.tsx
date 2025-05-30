@@ -79,12 +79,13 @@ const Workers = () => {
   const [newLocation, setNewLocation] = useState({
     place: "",
     panels: "",
+    minersPerPanel: "",
   });
 
   // Trae los datos crudos del WebSocket
   const { data: minerApiData } = useMinerApi();
-  console.log(minerApiData,"ESTA ES TODA MI DATA");
-  
+  console.log(minerApiData, "ESTA ES TODA MI DATA");
+
   // Mapea los datos crudos a la estructura de la tabla
   const workersRows = useMemo(() => (
     (minerApiData?.miners || [])
@@ -143,6 +144,14 @@ const Workers = () => {
 
     if (!selectedLocation || !selectedPanelForMiner) {
       toast.error("Error al agregar minero");
+      return;
+    }
+
+    const panel = selectedLocation.panels.find(p => p.id === selectedPanelForMiner);
+    const maxMiners = selectedLocation.minersPerPanel || 60;
+    const currentCount = panel.miners.filter(m => m.IP && m.IP.trim() !== "").length;
+    if (currentCount + validIPs.length > maxMiners) {
+      toast.error(`El panel está lleno (${currentCount}/${maxMiners}). Elimina máquinas para agregar más.`);
       return;
     }
 
@@ -213,49 +222,60 @@ const Workers = () => {
   };
 
   const handleCSVUpload = async (event, panelId) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    // Asume que cada línea es una IP
-    const ips = text
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.length > 0 && /^\d{1,3}(\.\d{1,3}){3}$/.test(line));
-    if (ips.length === 0) {
-      toast.error("El archivo no contiene IPs válidas.");
-      return;
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const ips = text
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && /^\d{1,3}(\.\d{1,3}){3}$/.test(line));
+      if (ips.length === 0) {
+        toast.error("El archivo no contiene IPs válidas.");
+        return;
+      }
+      if (!selectedLocation) {
+        toast.error("Selecciona una ubicación antes de cargar el CSV.");
+        return;
+      }
+      const panel = selectedLocation.panels.find(p => p.id === panelId);
+      const maxMiners = selectedLocation.minersPerPanel || 60;
+      // CORRIGE AQUÍ:
+      const currentCount = panel.miners.filter(m => m.IP && m.IP.trim() !== "").length;
+
+      if (currentCount + ips.length > maxMiners) {
+        toast.error(`El panel está lleno (${currentCount}/${maxMiners}). Elimina máquinas para agregar más.`);
+        return;
+      }
+
+      addMiner({
+        locationId: selectedLocation.id,
+        panelId,
+        ips,
+      });
+      toast.success(`Se agregaron ${ips.length} IPs desde el CSV.`);
+    } catch (err) {
+      toast.error("Error leyendo el archivo CSV.");
     }
-    if (!selectedLocation) {
-      toast.error("Selecciona una ubicación antes de cargar el CSV.");
-      return;
-    }
-    addMiner({
-      locationId: selectedLocation.id,
-      panelId,
-      ips,
-    });
-    toast.success(`Se agregaron ${ips.length} IPs desde el CSV.`);
-  } catch (err) {
-    toast.error("Error leyendo el archivo CSV.");
-  }
-};
+  };
 
   const handleAddLocation = () => {
-    if (!newLocation.place || !newLocation.panels) {
+    if (!newLocation.place || !newLocation.panels || !newLocation.minersPerPanel) {
       toast.error("Por favor complete todos los campos");
       return;
     }
 
-    const panelsCount = parseInt(newLocation.panels);
 
-    if (isNaN(panelsCount)) {
-      toast.error("El número de paneles debe ser un número válido");
+    const panelsCount = parseInt(newLocation.panels);
+    const minersPerPanel = parseInt(newLocation.minersPerPanel);
+
+    if (isNaN(panelsCount) || isNaN(minersPerPanel)) {
+      toast.error("Los valores deben ser números válidos");
       return;
     }
 
-    if (panelsCount <= 0) {
-      toast.error("El número de paneles debe ser mayor a 0");
+    if (panelsCount <= 0 || minersPerPanel <= 0) {
+      toast.error("Los valores deben ser mayores a 0");
       return;
     }
 
@@ -264,12 +284,18 @@ const Workers = () => {
       return;
     }
 
+    if (minersPerPanel > 200) {
+      toast.error("Máximo 200 máquinas por panel");
+      return;
+    }
+
     addLocation({
       name: newLocation.place,
       panelsCount,
+      minersPerPanel, // <-- pasa el nuevo campo
     });
 
-    setNewLocation({ place: "", panels: "" });
+    setNewLocation({ place: "", panels: "", minersPerPanel: "" });
     setIsDialogOpen(false);
     toast.success("Ubicación creada exitosamente");
   };
@@ -317,6 +343,14 @@ const Workers = () => {
                     value={newLocation.panels}
                     onChange={(e) => setNewLocation({ ...newLocation, panels: e.target.value })}
                   />
+                  <Input
+                    placeholder="Cantidad de máquinas por panel"
+                    type="number"
+                    min="1"
+                    max="200" // <-- Cambia aquí el máximo a 200
+                    value={newLocation.minersPerPanel}
+                    onChange={(e) => setNewLocation({ ...newLocation, minersPerPanel: e.target.value })}
+                  />
                   <Button
                     className="w-full bg-tmcblue-light hover:bg-tmcblue"
                     onClick={handleAddLocation}
@@ -340,7 +374,14 @@ const Workers = () => {
               </CardHeader>
               <CardContent>
                 <p>Paneles: {location.panels.length}</p>
-                <p>Mineros Totales: {location.panels.reduce((acc, panel) => acc + panel.miners.length, 0)}</p>
+                <p>
+                  Mineros Totales: {
+                    location.panels.reduce(
+                      (acc, panel) => acc + panel.miners.filter(m => m.IP && m.IP.trim() !== "").length,
+                      0
+                    )
+                  }
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -361,8 +402,8 @@ const Workers = () => {
             <h1 className="text-2xl font-bold">{selectedLocation.name}</h1>
             <p className="text-muted-foreground">
               {selectedPanel
-                ? `Panel ${selectedPanel.number}: ${selectedPanel.miners.length} mineros`
-                : `${selectedLocation.panels.reduce((acc, panel) => acc + panel.miners.length, 0)} mineros en total`}
+                ? `Panel ${selectedPanel.number}: ${selectedPanel.miners.filter(m => m.IP && m.IP.trim() !== "").length} mineros`
+                : `${selectedLocation.panels.reduce((acc, panel) => acc + panel.miners.filter(m => m.IP && m.IP.trim() !== "").length, 0)} mineros en total`}
             </p>
           </div>
         </div>
@@ -377,7 +418,7 @@ const Workers = () => {
                 value={panel.id}
                 className="min-w-max"
               >
-                Panel {panel.number} ({panel.miners.length})
+                Panel {panel.number} ({panel.miners.filter(m => m.IP && m.IP.trim() !== "").length})
               </TabsTrigger>
             ))}
           </TabsList>
@@ -386,7 +427,15 @@ const Workers = () => {
         {selectedLocation.panels.map(panel => (
           <TabsContent key={panel.id} value={panel.id} className="mt-0">
             <div className="space-y-4">
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end">
+                <span
+                  className={`font-semibold text-sm px-2 py-1 rounded ${panel.miners.filter(m => m.IP && m.IP.trim() !== "").length >= (selectedLocation.minersPerPanel || 60)
+                    ? "text-red-600"
+                    : "text-white-700"
+                    }`}
+                >
+                  {panel.miners.filter(m => m.IP && m.IP.trim() !== "").length}/{selectedLocation.minersPerPanel || 60}
+                </span>
                 <Button
                   className="bg-tmcblue-light hover:bg-tmcblue"
                   onClick={() => {
@@ -400,42 +449,47 @@ const Workers = () => {
                   Agregar IP
                 </Button>
                 <Button
-  asChild
-  className="bg-tmcblue-light hover:bg-tmcblue ml-2"
->
-  <label>
-    <Plus className="mr-2 h-5 w-5" />
-    Cargar CSV
-    <input
-      type="file"
-      accept=".csv"
-      style={{ display: "none" }}
-      onChange={(e) => handleCSVUpload(e, panel.id)}
-    />
-  </label>
-</Button>
+                  asChild
+                  className="bg-tmcblue-light hover:bg-tmcblue ml-2"
+                >
+                  <label>
+                    <Plus className="mr-2 h-5 w-5" />
+                    Cargar CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      style={{ display: "none" }}
+                      onChange={(e) => handleCSVUpload(e, panel.id)}
+                    />
+                  </label>
+                </Button>
+
               </div>
               <div className="rounded-md border border-border">
                 <DataTable
                   columns={columnsWithActions(panel.id)}
-               data={panel.miners.map(miner => {
-  const wsData = workersRows.find(row => row.IP === miner.IP);
-  return wsData
-    ? { ...wsData, id: miner.id, IP: miner.IP }
-    : {
-        id: miner.id,
-        IP: miner.IP,
-        tipo: "",
-        THSRT: "",
-        THSAvg: "",
-        eficiencia: "--",
-        potencia: "--",
-        temp: "--",
-        uptime: "--",
-        rendimiento: "--",
-        status: "offline"
-      };
-})}
+                  data={panel.miners
+                    .filter(miner => miner.IP && miner.IP.trim() !== "") // <-- SOLO mineros con IP real
+                    .map(miner => {
+                      const wsData = workersRows.find(row => row.IP === miner.IP);
+                      return wsData
+                        ? { ...wsData, id: miner.id, IP: miner.IP }
+                        : {
+                          id: miner.id,
+                          IP: miner.IP,
+                          tipo: "",
+                          THSRT: "",
+                          THSAvg: "",
+                          eficiencia: "--",
+                          potencia: "--",
+                          temp: "--",
+                          uptime: "--",
+                          rendimiento: "--",
+                          status: "offline"
+                        };
+                    })
+                  }
+
                   key={`${panel.id}-${panel.miners.length}`}
                 />
               </div>

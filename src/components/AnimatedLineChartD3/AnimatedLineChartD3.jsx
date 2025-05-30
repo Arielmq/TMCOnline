@@ -13,6 +13,7 @@ function makeData() {
 }
 
 export default function AnimatedSingleLineChartD3({
+  data = [],
   width = 500,
   height = 240,
   margin = { top: 20, right: 20, bottom: 30, left: 50 },
@@ -20,7 +21,6 @@ export default function AnimatedSingleLineChartD3({
 }) {
   const svgRef = useRef();
   const [currentEasing] = useState(easingName);
-  const data = useMemo(makeData, []);
 
   const easings = {
     easeLinear: d3.easeLinear,
@@ -34,7 +34,7 @@ export default function AnimatedSingleLineChartD3({
     easeExpOut: d3.easeExpOut,
   };
 
-  useEffect(() => {
+useEffect(() => {
     const svgEl = d3.select(svgRef.current);
     svgEl.selectAll('*').remove();
 
