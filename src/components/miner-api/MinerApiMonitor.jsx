@@ -107,10 +107,7 @@ export function MinerApiMonitor() {
       <CardHeader className="pb-2 ">
         <div className="flex justify-between items-center">
           <CardTitle>API de Mineros</CardTitle>
-          <Badge variant="outline" className="text-xs">
-            Total Hashrate: {formatHashrate(totalHashrate)} | Temp Promedio:{' '}
-            {avgTemperature.toFixed(1)}°C
-          </Badge>
+         
         </div>
       </CardHeader>
       <CardContent className="p-4">
@@ -128,34 +125,50 @@ export function MinerApiMonitor() {
                         <p className="text-sm text-muted-foreground">No hay mineros en este panel.</p>
                       ) : (
                         <div className="space-y-2">
-                          {panel.miners.map((miner) => (
-                            <div
-                              key={miner.IP}
-                              className="border border-gray-300 p-4 rounded-md"
-                              data-miner-ip={miner.IP}
-                            >
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <span className="font-medium">
-                                    {miner.IP} (Slot {miner.slot || 'N/A'})
-                                  </span>
-                                  <span className="text-sm text-muted-foreground ml-2">
-                                    ({miner.MinerType} - {miner.Worker1})
-                                  </span>
-                                </div>
-                                <Badge
-                                  variant={miner.Status === 'Running' ? 'default' : 'destructive'}
-                                >
-                                  {miner.Status}
-                                </Badge>
-                              </div>
-                              <div className="text-sm mt-2">
-                                <p>Hashrate: {formatHashrate(miner.THSRT * 1e6)}</p>
-                                <p>Power: {formatPower(miner.Power)}</p>
-                                <p>Temperature: {miner.EnvTemp ? miner.EnvTemp.toFixed(1) : 'N/A'}°C</p>
-                              </div>
-                            </div>
-                          ))}
+                         {panel.miners.map((miner) => {
+  // Buscar datos en tiempo real por IP
+  const wsMiner = wsMiners.find(
+    (m) => (m.ip === miner.IP || m.data?.ip === miner.IP) && m.status === "fulfilled"
+  );
+  const data = wsMiner?.data;
+
+  // Si hay datos en tiempo real, usarlos; si no, fallback a los datos estáticos
+  const hashrate = data?.summary?.hashrateAvg ?? 0;
+  const power = data?.summary?.power ?? 0;
+  const envTemp = data?.summary?.envTemp ?? null;
+  const minerType = data?.minerInfo?.minerType || miner.MinerType || "N/A";
+  const worker = data?.pool?.worker || miner.Worker1 || "N/A";
+  const status = hashrate > 0 ? "Running" : "Offline";
+
+  return (
+    <div
+      key={miner.IP}
+      className="border border-gray-300 p-4 rounded-md"
+      data-miner-ip={miner.IP}
+    >
+      <div className="flex justify-between items-center">
+        <div>
+          <span className="font-medium">
+            {miner.IP} (Slot {miner.slot || 'N/A'})
+          </span>
+          <span className="text-sm text-muted-foreground ml-2">
+            ({minerType} - {worker})
+          </span>
+        </div>
+        <Badge
+          variant={status === 'Running' ? 'default' : 'destructive'}
+        >
+          {status}
+        </Badge>
+      </div>
+      <div className="text-sm mt-2">
+        <p>Hashrate: {formatHashrate(hashrate)}</p>
+        <p>Power: {formatPower(power)}</p>
+        <p>Temperature: {envTemp !== null ? envTemp.toFixed(1) : 'N/A'}°C</p>
+      </div>
+    </div>
+  );
+})}
                         </div>
                       )}
                     </div>

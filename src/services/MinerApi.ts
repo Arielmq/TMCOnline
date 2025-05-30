@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useMinerStore } from '@/store/minerStore';
 import { useMiner } from '@/context/MinerContext';
 
-const WS_URL = 'ws://tmcwatch.loca.lt';
+const WS_URL = 'wss://tmcwatch.loca.lt';
 let socket: WebSocket | null = null;
 let reconnectInterval = 5000;
 const maxReconnectInterval = 50000;

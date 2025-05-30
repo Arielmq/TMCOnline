@@ -1,13 +1,12 @@
-// src/components/dashboard/MinerHealthCheck.tsx
 import { useState } from "react";
 import { useMiner } from "@/context/MinerContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Check, AlertTriangle, XOctagon, Thermometer, Cpu } from "lucide-react";
-import MinerHealthDetails from "./MinerHealthDetails";
+import { Check } from "lucide-react";
 import { MinerData } from "@/types/miner";
 import { Badge } from "@/components/ui/badge";
 import MinerPopup from "../workers/MinerPopup";
+import { useMinerApi } from "@/hooks/useMinerApi";
 
 // Health check thresholds for different miner types
 const HASHRATE_THRESHOLDS = {
@@ -25,15 +24,15 @@ const identifyIssues = (miner: MinerData): string[] => {
   const issues: string[] = [];
 
   // Hashrate thresholds
-  let type = miner.MinerType.split("_")[0];
+  let type = miner.MinerType?.split("_")[0] || "M30S";
   if (type.includes("++")) type = "M30S++";
   const t = HASHRATE_THRESHOLDS[type as keyof typeof HASHRATE_THRESHOLDS] || HASHRATE_THRESHOLDS.M30S;
-  if (miner.THSAvg < t.yellow) issues.push("Bajo Hashrate");
+  if ((miner.THSAvg ?? 0) < t.yellow) issues.push("Bajo Hashrate");
 
   // Temperature thresholds
-  if (miner.EnvTemp > TEMP_THRESHOLDS.red) {
+  if ((miner.EnvTemp ?? 0) > TEMP_THRESHOLDS.red) {
     issues.push("Sobrecalentamiento crítico");
-  } else if (miner.EnvTemp > TEMP_THRESHOLDS.yellow) {
+  } else if ((miner.EnvTemp ?? 0) > TEMP_THRESHOLDS.yellow) {
     issues.push("Temperatura elevada");
   }
 
@@ -43,7 +42,6 @@ const identifyIssues = (miner: MinerData): string[] => {
 // Color indicator helpers
 const getHashrateColor = (hr: number) => {
   if (hr === 0) return "red";
-  // reuse thresholds logic
   let type = "M30S";
   const t = HASHRATE_THRESHOLDS[type];
   if (hr >= t.green) return "green";
@@ -58,9 +56,10 @@ const getTempColor = (temp: number) => {
 
 const MinerHealthCheck = () => {
   const { locations } = useMiner();
+  const { data } = useMinerApi();
   const [selectedMiner, setSelectedMiner] = useState<MinerData | null>(null);
 
-  // Collect only running miners with real data
+  // Relaciona los datos del WebSocket con la configuración para saber ubicación y panel
   const minersWithIssues: {
     miner: MinerData;
     location: string;
@@ -68,23 +67,43 @@ const MinerHealthCheck = () => {
     issues: string[];
   }[] = [];
 
-  locations.forEach((loc) => {
-    loc.panels.forEach((panel) => {
-      panel.miners.forEach((miner) => {
-        // skip offline or suspended
-        if (miner.THSAvg === 0 || miner.Status === "Suspended") return;
-        const issues = identifyIssues(miner);
-        if (issues.length > 0) {
-          minersWithIssues.push({
-            miner,
-            location: loc.name,
-            panel: panel.number,
-            issues,
-          });
-        }
+  if (data?.miners?.length && locations?.length) {
+    data.miners.forEach((apiMiner) => {
+      if (apiMiner.status !== "fulfilled" || !apiMiner.data) return;
+      const minerData = apiMiner.data;
+      // Buscar ubicación y panel por IP
+      let found = false;
+      locations.forEach((loc) => {
+        loc.panels.forEach((panel) => {
+          const miner = panel.miners.find((m) => m.IP === minerData.ip);
+          if (miner) {
+            // Mezcla datos de config + datos en vivo
+            const mergedMiner: MinerData = {
+              ...miner,
+              ...minerData,
+              THSAvg: minerData.summary?.hashrateAvg ?? 0,
+              EnvTemp: minerData.summary?.envTemp ?? 0,
+              MinerType: minerData.minerInfo?.minerType ?? miner.MinerType ?? "",
+              MACAddr: minerData.minerInfo?.macAddress ?? miner.MACAddr ?? "",
+              Status: minerData.summary?.hashrateAvg > 0 ? "Running" : "Stopped",
+            };
+            if (mergedMiner.THSAvg === 0 || mergedMiner.Status === "Suspended") return;
+            const issues = identifyIssues(mergedMiner);
+            if (issues.length > 0) {
+              minersWithIssues.push({
+                miner: mergedMiner,
+                location: loc.name,
+                panel: panel.number,
+                issues,
+              });
+            }
+            found = true;
+          }
+        });
       });
+      // Si no está en la config, igual lo puedes mostrar (opcional)
     });
-  });
+  }
 
   return (
     <div>

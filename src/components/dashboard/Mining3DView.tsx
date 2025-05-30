@@ -13,6 +13,17 @@ import "./Mining3dView.css";
 import { useMinerApi } from "@/hooks/useMinerApi";
 type FilterType = "all" | "online";
 
+// Helper para extraer letra de panel y slot del worker
+function parseWorker(worker: string) {
+  // Ejemplo: Adrianm211120.ZC007
+   const match = worker?.match(/\.Z([A-Z])(\d{3})/i);
+  if (!match) return { panel: null, slot: null };
+  return {
+    panel: match[1].toUpperCase(),
+    slot: parseInt(match[2], 10),
+  };
+}
+
 const Mining3DView = () => {
   const { data: minerApiData } = useMinerApi();
   const wsMiners = minerApiData?.miners || [];
@@ -26,23 +37,16 @@ const Mining3DView = () => {
 
   // Helper para combinar datos del WebSocket con los del minero del panel
   const getMinerWithWSData = (miner) => {
-
-    
     const wsData = wsMiners.find((m) => m.ip === miner.IP && m.status === "fulfilled");
-    if (!wsData || !wsData.data) return { ...miner, THSRT: 0 }; // o los campos vacíos
+    if (!wsData || !wsData.data) return { ...miner, THSRT: 0, _parsed: parseWorker(miner.Worker1 || "") };
     const data = wsData.data;
-
-    // Type guard: check if data has 'minerInfo' property
     if (!('minerInfo' in data)) {
-      return { ...miner, THSRT: 0 };
+      return { ...miner, THSRT: 0, _parsed: parseWorker(miner.Worker1 || "") };
     }
-
     const thsrtSum = (data.hashboards || [])
       .slice(0, 3)
       .reduce((acc, hb) => acc + Math.floor((hb.hashrate || 0) / 1_000_000), 0);
 
-     
-      
     return {
       ...miner,
       Status: "Running",
@@ -55,7 +59,6 @@ const Mining3DView = () => {
       SpdOut: data.summary?.fanSpeedOut ?? "N/A",
       ActivePool: data.pool?.worker || "N/A",
       Worker1: data.pool?.worker || "N/A",
-      // RejectRate: data.pool?.rejectRate ?? "N/A", // Property does not exist on PoolInfo
       RejectRate: "N/A",
       THSRT: thsrtSum,
       THSAvg: data.summary?.hashrateAvg ?? "",
@@ -64,9 +67,10 @@ const Mining3DView = () => {
       EnvTemp: data.hashboards?.[0]?.temperature ?? "",
       UpTime: data.summary?.elapsed ?? "",
       Performance: data.summary?.hashrateAvg ?? "",
+      _parsed: parseWorker(data.pool?.worker || miner.Worker1 || ""),
     };
   };
-
+  
   // Validate if locations data is complete
   const isValidLocationsData = (locations: LocationData[]): boolean => {
     return (
@@ -110,26 +114,6 @@ const Mining3DView = () => {
     setSelectedMiner(miner);
   };
 
-  const getMinerStatusColor = (miner: MinerData) => {
-    if (miner.THSRT === 0) {
-      return "bg-[#ea384c]";
-    }
-    if (
-      miner.RejectRate > 0.1 ||
-      miner.EnvTemp > 45 ||
-      (miner.MinerType.includes("M30S") && miner.THSRT < 80) ||
-      (miner.MinerType.includes("M50") && miner.THSRT < 100)
-    ) {
-      return "bg-[#FEF7CD]";
-    }
-    return "bg-white";
-  };
-
-  const getTHSRTextColor = (ths: number) => {
-    if (ths <= 80) return 'text-yellow-500';
-    return 'text-green-500';
-  };
-
   // Filtra mineros por THSRT > 0
   const filterMiners = (miners: MinerData[]): MinerData[] => {
     if (filter === "all") return miners.filter(miner => miner.THSRT > 0);
@@ -139,46 +123,28 @@ const Mining3DView = () => {
     return miners.filter(miner => miner.THSRT > 0);
   };
 
-  // Cuenta mineros online/total para una ubicación
-  const countMinersByStatus = (location: LocationData) => {
-    let online = 0;
-    let total = 0;
-    location.panels.forEach((panel) => {
-      panel.miners.forEach((miner) => {
-        if (miner.THSRT > 0) {
-          total++;
-          online++;
-        }
-      });
-    });
-    return { online, total };
-  };
-
-  // Cuenta mineros online/total para un panel
-  const countPanelMinersByStatus = (panel: PanelData) => {
-    let online = 0;
-    let total = 0;
-    panel.miners.forEach((miner) => {
-      if (miner.THSRT > 0) {
-        total++;
-        online++;
-      }
-    });
-    return { online, total };
-  };
-
   // Si hay panel seleccionado, muestra los mineros de ese panel
   if (selectedPanel) {
-    // Mapea los mineros del panel con los datos del WebSocket
-    const minersWithWSData = selectedPanel.miners.map(getMinerWithWSData);
+    // Mapea los mineros del panel con los datos del WebSocket y parsea worker
+    let minersWithWSData = selectedPanel.miners.map(getMinerWithWSData)
+      .map(miner => ({
+        ...miner,
+        _parsed: parseWorker(miner.Worker1 || miner.ActivePool || ""),
+      }))
+      .sort((a, b) => {
+        // Ordena por slot (de menor a mayor)
+        if (a._parsed.slot == null) return 1;
+        if (b._parsed.slot == null) return -1;
+        return a._parsed.slot - b._parsed.slot;
+      });
+
     const filteredMiners = filterMiners(minersWithWSData);
-    const counts = countPanelMinersByStatus({ ...selectedPanel, miners: minersWithWSData });
 
     return (
       <div className="col-span-3 row-span-2">
         <div className="flex justify-between items-center mb-4">
-          <h3 style={{ display: "none" }} className="text-lg font-medium">
-            Panel #{selectedPanel.number} - {filteredMiners.length} Miners
+          <h3 className="text-lg font-medium">
+            Panel {minersWithWSData[0]?._parsed.panel || String.fromCharCode(65 + (selectedPanel.number - 1))} - {filteredMiners.length} Miners
           </h3>
           <div className="flex gap-2">
             <Button
@@ -186,14 +152,14 @@ const Mining3DView = () => {
               size="sm"
               onClick={() => setFilter("online")}
             >
-              Online ({counts.online})
+              Online ({filteredMiners.length})
             </Button>
             <Button
               variant={filter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setFilter("all")}
             >
-              All ({counts.total})
+              All ({minersWithWSData.length})
             </Button>
             <Button variant="ghost" onClick={handleClosePanel}>
               <X className="h-5 w-5 mr-2" />
@@ -204,11 +170,12 @@ const Mining3DView = () => {
         <Card className="bg-tmcdark-card border-border p-4">
           <ScrollArea>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 p-4">
-              {filteredMiners.map((miner) => (
+              {minersWithWSData.map((miner) => (
                 <div
                   key={miner.IP}
                   className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
                   onClick={() => handleMinerClick(miner)}
+                  title={`Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`}
                 >
                   <MinerVisualization miner={miner} />
                 </div>
@@ -234,160 +201,143 @@ const Mining3DView = () => {
       <Card className="bg-tmcdark-card border-border p-4">
         <Tabs defaultValue={displayedLocations[0]?.id} className="w-full h-full flex flex-col">
           <TabsList className="grid grid-cols-4 mb-4">
-            {displayedLocations.map((location) => {
-              const counts = countMinersByStatus(location);
-
-              return (
-                <TabsTrigger
-                  key={location.id}
-                  value={location.id}
-                  onClick={() => handleLocationSelect(location)}
-                  className="text-sm"
-                >
-                  {location.name}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
-          {displayedLocations.map((location) => {
-            const counts = countMinersByStatus(location);
-
-            return (
-              <TabsContent
+            {displayedLocations.map((location) => (
+              <TabsTrigger
                 key={location.id}
                 value={location.id}
-                className="flex-1 overflow-visible min-h-0"
+                onClick={() => handleLocationSelect(location)}
+                className="text-sm"
               >
-                <ScrollArea className="h-fit w-full pr-4 overflow-visible">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-md font-medium">{location.name} - Panels</h4>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={filter === "online" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setFilter("online")}
+                {location.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {displayedLocations.map((location) => (
+            <TabsContent
+              key={location.id}
+              value={location.id}
+              className="flex-1 overflow-visible min-h-0"
+            >
+              <ScrollArea className="h-fit w-full pr-4 overflow-visible">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-md font-medium">{location.name} - Panels</h4>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 max-[1366px]:grid-cols-1" style={{ gridTemplateColumns: undefined }}>
+                    {location.panels.map((panel) => {
+                      // Mapea los mineros del panel con los datos del WebSocket y parsea worker
+                     let minersWithWSData = panel.miners.map(getMinerWithWSData)
+  .map(miner => {
+    const parsed = parseWorker(miner.Worker1 || miner.ActivePool || "");
+    // Forzar la letra del panel según el número del panel
+    const panelLetter = String.fromCharCode(65 + (panel.number - 1));
+    return {
+      ...miner,
+      _parsed: {
+        panel: panelLetter,
+        slot: parsed.slot,
+      },
+    };
+  })
+  .sort((a, b) => {
+    if (a._parsed.slot == null) return 1;
+    if (b._parsed.slot == null) return -1;
+    return a._parsed.slot - b._parsed.slot;
+  });
+
+                      // Panel letter
+                      const panelLetter = String.fromCharCode(65 + (panel.number - 1));
+                      return (
+                        <div
+                          key={panel.id}
+                          className="mining3DView border border-gray-700 rounded-md p-3 cursor-pointer hover:bg-tmcdark-lighter transition-colors aspect-square"
+                          onClick={() => handlePanelClick(panel)}
                         >
-                          Online ({counts.online})
-                        </Button>
-                        <Button
-                          variant={filter === "all" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setFilter("all")}
-                        >
-                          All ({counts.total})
-                        </Button>
-                      </div>
-                    </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="text-sm font-medium">Panel {panelLetter}</h5>
+                            <span className="text-xs text-muted-foreground">
+                              {minersWithWSData.length} Miners
+                            </span>
+                          </div>
 
-                    <div className="grid grid-cols-2 gap-4 max-[1366px]:grid-cols-1" style={{ gridTemplateColumns: undefined }}>
-                      {location.panels.map((panel) => {
-                        // Mapea los mineros del panel con los datos del WebSocket
-                        const minersWithWSData = panel.miners.map(getMinerWithWSData);
-                        const filteredMiners = filterMiners(minersWithWSData);
+                          <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
+                            <div
+                              className="grid h-full"
+                              style={{
+                                gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(panel.miners.length || 60))}, 1fr)`,
+                                gridTemplateRows: `repeat(${Math.ceil((panel.miners.length || 60) / Math.ceil(Math.sqrt(panel.miners.length || 60)))}, 1fr)`,
+                                gap: "2px",
+                              }}
+                            >
+                              {minersWithWSData.map((miner, idx) => {
+                                const hasValidMiner = miner && miner.IP && miner.IP.trim() !== "";
+                                let thsValue = hasValidMiner && miner.THSRT ? Math.round(miner.THSRT) : 0;
+                                if (!Number.isFinite(thsValue) || thsValue > 999) thsValue = 0;
 
-                        // Skip panels with no miners after filtering
-                        if (filteredMiners.length === 0 && filter !== "all") {
-                          return null;
-                        }
+                                let textClass = "";
+                                let shadow = "";
+                                let bgClass = hasValidMiner ? "bg-white/40" : "bg-white/10";
 
-                        return (
-                          <div
-                            key={panel.id}
-                            className="mining3DView border border-gray-700 rounded-md p-3 cursor-pointer hover:bg-tmcdark-lighter transition-colors aspect-square"
-                            onClick={() => handlePanelClick(panel)}
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="text-sm font-medium">Panel #{panel.number}</h5>
-                              <span className="text-xs text-muted-foreground">
-                                {filteredMiners.length} Miners
-                              </span>
-                            </div>
-
-
-                            <div className="w-full aspect-square bg-gray-800 rounded-md p-2 relative overflow-hidden">
-                              <div
-                                className="grid h-full"
-                                style={{
-                                  gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(panel.miners.length || 60))}, 1fr)`,
-                                  gridTemplateRows: `repeat(${Math.ceil((panel.miners.length || 60) / Math.ceil(Math.sqrt(panel.miners.length || 60)))}, 1fr)`,
-                                  gap: "2px",
-                                }}
-                              >
-                                {Array.from({ length: panel.miners.length || 60 }).map((_, index) => {
-                                  // Mapea el slot con los datos del WebSocket
-                                  const miner = panel.miners[index];
-                                  const minerWithWS = miner ? getMinerWithWSData(miner) : null;
-                                  const hasValidMiner = minerWithWS && minerWithWS.IP && minerWithWS.IP.trim() !== "";
-
-                                  // El valor debe ser el hashrate real (THSRT) si existe
-                                  let thsValue = hasValidMiner && minerWithWS.THSRT ? Math.round(minerWithWS.THSRT) : 0;
-                                  if (!Number.isFinite(thsValue) || thsValue > 999) thsValue = 0;
-
-                                  let textClass = "";
-                                  let shadow = "";
-                                  let bgClass = hasValidMiner ? "bg-white/40" : "bg-white/10";
-
-                                  if (hasValidMiner) {
-                                    if (thsValue <= 80) {
-                                      textClass = "text-yellow-500";
-                                      shadow = "0 0 10px rgba(234, 179, 8, 0.6)";
-                                    } else {
-                                      textClass = "text-green-500";
-                                      shadow = "0 0 10px rgba(34, 197, 94, 0.6)";
-                                    }
+                                if (hasValidMiner) {
+                                  if (thsValue <= 80) {
+                                    textClass = "text-yellow-500";
+                                    shadow = "0 0 10px rgba(234, 179, 8, 0.6)";
+                                  } else {
+                                    textClass = "text-green-500";
+                                    shadow = "0 0 10px rgba(34, 197, 94, 0.6)";
                                   }
+                                }
 
-                                  return (
-                                    <div
-                                      key={index}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (hasValidMiner) handleMinerClick(minerWithWS);
-                                      }}
-                                      title={
-                                        hasValidMiner
-                                          ? `${minerWithWS.IP} – ${minerWithWS.MinerType || ""}`
-                                          : "Empty Slot"
-                                      }
-                                      className={`
-            w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
-            ${bgClass}
-            flex items-center justify-center overflow-hidden
-            ${hasValidMiner ? "cursor-pointer" : "cursor-default"}
-          `}
-                                    >
-                                      {hasValidMiner && (
-                                        <span
-                                          className={`font-bold leading-none mining3d__span ${textClass}`}
-                                          style={{
-                                            textShadow: shadow,
-                                            fontSize: "clamp(0.5rem, 1.2vw, 1rem)", // Más pequeño para 3 cifras
-                                            width: "100%",
-                                            textAlign: "center",
-                                            overflow: "hidden",
-                                            display: "block",
-                                            lineHeight: 1,
-                                          }}
-                                        >
-                                          {thsValue}
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                return (
+                                  <div
+                                    key={miner.IP || idx}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (hasValidMiner) handleMinerClick(miner);
+                                    }}
+                                    title={
+                                      hasValidMiner
+                                        ? `Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`
+                                        : "Empty Slot"
+                                    }
+                                    className={`
+                                      w-full aspect-square min-h-[8px] rounded-sm border border-gray-700
+                                      ${bgClass}
+                                      flex items-center justify-center overflow-hidden
+                                      ${hasValidMiner ? "cursor-pointer" : "cursor-default"}
+                                    `}
+                                  >
+                                    {hasValidMiner && (
+                                      <span
+                                        className={`font-bold leading-none mining3d__span ${textClass}`}
+                                        style={{
+                                          textShadow: shadow,
+                                          fontSize: "clamp(0.5rem, 1.2vw, 1rem)",
+                                          width: "100%",
+                                          textAlign: "center",
+                                          overflow: "hidden",
+                                          display: "block",
+                                          lineHeight: 1,
+                                        }}
+                                      >
+                                        {thsValue}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </ScrollArea>
-              </TabsContent>
-            );
-          })}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          ))}
         </Tabs>
       </Card>
 
