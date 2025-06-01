@@ -14,6 +14,7 @@ import Index from './pages/IndexApp.jsx';
 import Workers from './pages/Workers';
 import CloudMining from './pages/CloudMining';
 import HealthCheck from './pages/HealthCheck';
+import AsicsCheck from './pages/AsicsCheck';
 import HowItWorks from './pages/HowItWorks';
 import Quote from './pages/Quote';
 import Contact from './pages/Contact';
@@ -22,6 +23,7 @@ import Auth from './pages/Auth';
 import Subscription from './pages/Subscription';
 import NotFound from './pages/NotFound';
 import Home from './pages/Home.jsx';
+import { MinerApiProvider } from "@/context/MinerApiContext";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,7 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <MinerProvider>
+            <MinerApiProvider>
             <WalletProvider wallets={wallets} autoConnect>
               <Toaster />
               <BrowserRouter>
@@ -44,6 +47,7 @@ const App = () => {
                   <Route path="/" element={<Home />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                 <Route path="/asics-check" element={<ProtectedRoute><AsicsCheck /></ProtectedRoute>} />
                   <Route path="/workers" element={<ProtectedRoute><Workers /></ProtectedRoute>} />
                   <Route path="/cloud-mining" element={<ProtectedRoute><CloudMining /></ProtectedRoute>} />
                   <Route path="/health-check" element={<ProtectedRoute><HealthCheck /></ProtectedRoute>} />
@@ -56,6 +60,7 @@ const App = () => {
                 </Routes>
               </BrowserRouter>
             </WalletProvider>
+            </MinerApiProvider>
           </MinerProvider>
         </AuthProvider>
       </TooltipProvider>

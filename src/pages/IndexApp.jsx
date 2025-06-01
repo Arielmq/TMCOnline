@@ -7,6 +7,7 @@ import { LayoutGrid, Thermometer, Activity, ArrowDown } from "lucide-react";
 import MinerApiMonitor from "@/components/miner-api/MinerApiMonitor";
 import { useEffect, useState, useRef } from "react";
 import { useMinerApi } from "@/hooks/useMinerApi";
+import { useNavigate } from "react-router-dom";
 
 // Utilidades para stats
 const mhsToThs = (mhs) => (mhs / 1_000_000).toFixed(2);
@@ -21,7 +22,7 @@ const Index = () => {
     avgTemperature: "N/A",
   });
   const [isLoading, setIsLoading] = useState(true);
-
+  const navigate = useNavigate();
   // Demo popup state
   const [showDemoPopup, setShowDemoPopup] = useState(true);
   const popupRef = useRef(null);
@@ -69,11 +70,13 @@ const Index = () => {
     locations.forEach((loc) => {
       loc.panels.forEach((panel) => {
         panel.miners.forEach((miner) => {
-          allUserMiners.push({
-            ...miner,
-            location: loc.name,
-            panel: panel.number,
-          });
+          if (miner.IP && miner.IP.trim() !== "") {
+            allUserMiners.push({
+              ...miner,
+              location: loc.name,
+              panel: panel.number,
+            });
+          }
         });
       });
     });
@@ -105,7 +108,7 @@ const Index = () => {
     // 3. Stats
     const active = minersWithApi.filter((m) => m.status === "active");
     const totalHashrate = minersWithApi.reduce(
-      (acc, m) => acc + parseFloat(m.hashrate), 0
+      (acc, m) => acc + (parseFloat(m.hashrate) || 0), 0
     );
     const avgTemp =
       active.length > 0
@@ -138,15 +141,20 @@ const Index = () => {
     setIsLoading(false);
   }, [locations, data]);
 
-  if (isLoading) {
+  if (!isLoading && locations.length === 0) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center min-h-screen">
-          <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-          <div
-            className="w-24 h-24 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
-            aria-label="Loading spinner"
-          />
+          <h1 className="text-2xl font-bold mb-4">No locations found</h1>
+          <p className="mb-6 text-muted-foreground text-center">
+            You need to create a new location before using the dashboard.
+          </p>
+          <button
+            onClick={() => navigate("/workers")}
+            className="px-6 py-2 bg-tmcblue-light hover:bg-tmcblue text-white font-medium rounded-md transition-colors"
+          >
+            Create Location
+          </button>
         </div>
       </MainLayout>
     );

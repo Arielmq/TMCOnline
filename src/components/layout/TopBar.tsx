@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Menu,
   Bell,
   User,
   ChevronLeft,
   ChevronRight,
   LogOut,
   CreditCard,
+  RotateCw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
+import { useMinerApi } from "@/hooks/useMinerApi";
 
 interface TopBarProps {
   toggleSidebar: () => void;
@@ -20,6 +21,9 @@ interface TopBarProps {
 const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
   const { logOut, user } = useAuth();
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
+
+  // Usa useMinerApi y extrae refetch
+  const { refetch } = useMinerApi();
 
   useEffect(() => {
     let isMounted = true;
@@ -38,9 +42,7 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
       }
     };
 
-    // Primera carga
     fetchBtcPrice();
-    // Actualizar cada 60 segundos
     const intervalId = setInterval(fetchBtcPrice, 10_000);
 
     return () => {
@@ -48,6 +50,13 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
       clearInterval(intervalId);
     };
   }, []);
+
+  // Handler para recargar datos de mineros
+  const handleReload = () => {
+    if (typeof refetch === "function") {
+      refetch();
+    }
+  };
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-tmcdark-card">
@@ -67,14 +76,25 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
       </div>
 
       <div className="flex items-center space-x-4">
+        {/* Reload Data Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleReload}
+          className="text-muted-foreground hover:text-foreground"
+          title="Reload miners data"
+        >
+          <RotateCw className="h-5 w-5" />
+        </Button>
+
         <div className="flex items-center px-3 py-1 rounded-full bg-bitcoin/10 text-bitcoin text-sm">
           <span className="mr-1">₿</span>
           <span>
             {btcPrice !== null
               ? btcPrice.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
               : "..."}
           </span>
         </div>
