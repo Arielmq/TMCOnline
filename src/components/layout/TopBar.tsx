@@ -87,6 +87,7 @@ const TopBar = ({ toggleSidebar, isSidebarCollapsed }: TopBarProps) => {
           <RotateCw className="h-5 w-5" />
         </Button>
 
+       
         <div className="flex items-center px-3 py-1 rounded-full bg-bitcoin/10 text-bitcoin text-sm">
           <span className="mr-1">₿</span>
           <span>

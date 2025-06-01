@@ -21,6 +21,10 @@ const Index = () => {
     activeWorkers: "0/0",
     avgTemperature: "N/A",
   });
+  const [tunnelSubdomain, setTunnelSubdomain] = useState(() => {
+  return localStorage.getItem("tunnelSubdomain") || "tmcwatch";
+});
+const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   // Demo popup state
@@ -31,6 +35,13 @@ const Index = () => {
   useEffect(() => {
     setShowDemoPopup(true);
   }, []);
+
+
+  useEffect(() => {
+  localStorage.setItem("tunnelSubdomain", tunnelSubdomain);
+  // Si quieres que el WS_URL se actualice globalmente, puedes emitir un evento o usar contexto aquí
+}, [tunnelSubdomain]);
+
 
   // Close popup on outside click or Escape
   useEffect(() => {
@@ -198,22 +209,49 @@ const Index = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Active Workers"
-          value={stats.activeWorkers}
-          icon={<LayoutGrid className="h-5 w-5 text-tmcblue-light" />}
+
+
+
+  {/* Download & Configure */}
+  <div className="bg-tmcdark-card border border-border rounded-lg p-4 flex flex-col justify-between">
+    <div>
+      <h3 className="font-bold text-lg mb-2">Download & configure</h3>
+      <a
+        href="https://github.com/hashira-ai/tmc-agent/releases/latest"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-400 underline mb-3 inline-block"
+      >
+        Download from here
+      </a>
+    </div>
+    <div className="mt-4">
+      <label className="block text-sm mb-1 font-medium text-muted-foreground">
+        Configure your tunnel
+      </label>
+      <div className="flex items-center">
+        <input
+          type="text"
+          value={tunnelSubdomain}
+          onChange={e => setTunnelSubdomain(e.target.value)}
+          disabled={!isEditing}
+          className="bg-tmcdark border border-border rounded px-2 py-1 text-white w-32 mr-2"
+          placeholder="subdomain"
         />
-        <StatCard
-          title="Avg. Temperature"
-          value={stats.avgTemperature}
-          icon={<Thermometer className="h-5 w-5 text-status-warning" />}
-        />
-        <StatCard
-          title="Total Hashrate"
-          value={stats.totalHashrate}
-          icon={<Activity className="h-5 w-5 text-tmcblue-light" />}
-        />
+        <span className="text-muted-foreground text-sm mr-2">.loca.lt</span>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className="px-2 py-1 text-xs bg-tmcblue-light text-white rounded hover:bg-tmcblue transition"
+        >
+          {isEditing ? "Save" : "Edit"}
+        </button>
       </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        WebSocket URL: <span className="font-mono">ws://{tunnelSubdomain || "tmcwatch"}.loca.lt</span>
+      </p>
+    </div>
+  </div>
+</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Mining3DView />
