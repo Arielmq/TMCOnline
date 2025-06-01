@@ -26,23 +26,25 @@ export function connectToMinerAPI(
   }
 
   const getFrontendIPs = () => {
-    if (!Array.isArray(locations)) {
-      console.error('Locations no es un arreglo:', locations);
-      toast.error('Error: No se pudieron obtener las IPs de los mineros');
-      return [];
-    }
-    const ips = locations.flatMap(loc =>
-      Array.isArray(loc.panels)
-        ? loc.panels.flatMap(panel =>
-            Array.isArray(panel.miners)
-              ? panel.miners.map(miner => miner.IP)
-              : []
-          )
-        : []
-    );
-    console.log('IPs del frontend obtenidas:', ips);
-    return ips;
-  };
+  if (!Array.isArray(locations)) {
+    console.error('Locations no es un arreglo:', locations);
+    toast.error('Error: No se pudieron obtener las IPs de los mineros');
+    return [];
+  }
+  const ips = locations.flatMap(loc =>
+    Array.isArray(loc.panels)
+      ? loc.panels.flatMap(panel =>
+          Array.isArray(panel.miners)
+            ? panel.miners
+                .map(miner => miner.IP)
+                .filter(ip => ip && ip.trim() !== "") // <-- SOLO IPs no vacías
+            : []
+        )
+      : []
+  );
+  console.log('IPs del frontend obtenidas:', ips);
+  return ips;
+};
 
   const connect = () => {
     try {

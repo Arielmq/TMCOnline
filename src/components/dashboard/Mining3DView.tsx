@@ -170,16 +170,18 @@ const Mining3DView = () => {
         <Card className="bg-tmcdark-card border-border p-4">
           <ScrollArea>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 p-4">
-              {minersWithWSData.map((miner) => (
-                <div
-                  key={miner.IP}
-                  className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
-                  onClick={() => handleMinerClick(miner)}
-                  title={`Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`}
-                >
-                  <MinerVisualization miner={miner} />
-                </div>
-              ))}
+             {minersWithWSData
+  .filter((miner) => miner.IP && miner.IP.trim() !== "")
+  .map((miner) => (
+    <div
+      key={miner.IP}
+      className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
+      onClick={() => handleMinerClick(miner)}
+      title={`Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`}
+    >
+      <MinerVisualization miner={miner} />
+    </div>
+  ))}
             </div>
           </ScrollArea>
         </Card>
