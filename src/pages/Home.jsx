@@ -1,7 +1,7 @@
 
 import HeroContent from '../components/HeroContent'
 import AboutUs from '../components/AboutUs'
-import './navbar.css'
+import './home.css'
 import HowItWorks from '../components/HowItWorks'
 import PreSale from "../components/PreSale"
 import Contact from '../components/ContactTrial'
