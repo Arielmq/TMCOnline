@@ -50,6 +50,24 @@ const mapMinerApiToWorkerRow = (minerApiItem) => {
     Performance: data.summary?.hashrateAvg ?? "",
   };
 };
+
+function cleanIP(ip: string) {
+  // Quita espacios y ceros a la izquierda de cada octeto
+  return ip
+    .trim()
+    .split('.')
+    .map(octet => String(Number(octet)))
+    .join('.');
+}
+function isValidIP(ip: string) {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) &&
+    ip.split('.').every(octet => {
+      const n = Number(octet);
+      return n >= 0 && n <= 255;
+    });
+}
+
+
 const Workers = () => {
   const {
     locations,
@@ -87,7 +105,7 @@ const Workers = () => {
   console.log(minerApiData, "ESTA ES TODA MI DATA");
 
   // Mapea los datos crudos a la estructura de la tabla
-  const workersRows = useMemo(() => (
+const workersRows = useMemo(() => (
     (minerApiData?.miners || [])
       .map(mapMinerApiToWorkerRow)
       .filter(Boolean)
@@ -136,14 +154,17 @@ const Workers = () => {
   }, [selectedLocation?.id]);
 
   const handleAddMiner = () => {
-    const validIPs = minerIPs.filter(ip => ip.trim() !== '');
+    // Limpia y valida las IPs antes de agregar
+    const validIPs = minerIPs
+    .map(cleanIP) // <--- Asegúrate de limpiar aquí
+    .filter(ip => ip && isValidIP(ip));
     if (validIPs.length === 0) {
-      toast.error("Por favor ingrese al menos una IP");
+      toast.error("Please enter at least one valid IP");
       return;
     }
 
     if (!selectedLocation || !selectedPanelForMiner) {
-      toast.error("Error al agregar minero");
+      toast.error("Error adding miner");
       return;
     }
 
@@ -151,7 +172,7 @@ const Workers = () => {
     const maxMiners = selectedLocation.minersPerPanel || 60;
     const currentCount = panel.miners.filter(m => m.IP && m.IP.trim() !== "").length;
     if (currentCount + validIPs.length > maxMiners) {
-      toast.error(`El panel está lleno (${currentCount}/${maxMiners}). Elimina máquinas para agregar más.`);
+      toast.error(`Panel is full (${currentCount}/${maxMiners}). Remove machines to add more.`);
       return;
     }
 
@@ -163,7 +184,7 @@ const Workers = () => {
 
     setMinerIPs(['']);
     setIsAddMinerDialogOpen(false);
-    toast.success("Mineros agregados exitosamente");
+    toast.success("Miners added successfully");
   };
 
   const handleAddIPInput = () => {
@@ -202,25 +223,25 @@ const Workers = () => {
   };
 
   const handleSaveEdit = () => {
-    if (!newMinerIP) {
-      toast.error("Por favor ingrese una IP");
-      return;
-    }
-    if (!selectedLocation || !editingMiner) return;
+  const cleanedIP = cleanIP(newMinerIP); // <--- Limpia aquí
+  if (!cleanedIP || !isValidIP(cleanedIP)) {
+    toast.error("Please enter a valid IP");
+    return;
+  }
+  if (!selectedLocation || !editingMiner) return;
 
-    updateMiner({
-      locationId: selectedLocation.id,
-      panelId: editingMiner.panelId,
-      minerId: editingMiner.id,
-      newIp: newMinerIP
-    });
+  updateMiner({
+    locationId: selectedLocation.id,
+    panelId: editingMiner.panelId,
+    minerId: editingMiner.id,
+    newIp: cleanedIP // <--- Guarda la IP limpia
+  });
 
-    setNewMinerIP("");
-    setEditingMiner(null);
-    setIsAddMinerDialogOpen(false);
-    toast.success("Minero actualizado exitosamente");
-  };
-
+  setNewMinerIP("");
+  setEditingMiner(null);
+  setIsAddMinerDialogOpen(false);
+  toast.success("Miner updated successfully");
+};
   const handleCSVUpload = async (event, panelId) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -228,23 +249,22 @@ const Workers = () => {
       const text = await file.text();
       const ips = text
         .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && /^\d{1,3}(\.\d{1,3}){3}$/.test(line));
+        .map(line => cleanIP(line))
+        .filter(ip => ip.length > 0 && isValidIP(ip));
       if (ips.length === 0) {
-        toast.error("El archivo no contiene IPs válidas.");
+        toast.error("The file does not contain valid IPs.");
         return;
       }
       if (!selectedLocation) {
-        toast.error("Selecciona una ubicación antes de cargar el CSV.");
+        toast.error("Select a location before uploading the CSV.");
         return;
       }
       const panel = selectedLocation.panels.find(p => p.id === panelId);
       const maxMiners = selectedLocation.minersPerPanel || 60;
-      // CORRIGE AQUÍ:
       const currentCount = panel.miners.filter(m => m.IP && m.IP.trim() !== "").length;
 
       if (currentCount + ips.length > maxMiners) {
-        toast.error(`El panel está lleno (${currentCount}/${maxMiners}). Elimina máquinas para agregar más.`);
+        toast.error(`Panel is full (${currentCount}/${maxMiners}). Remove machines to add more.`);
         return;
       }
 
@@ -253,9 +273,9 @@ const Workers = () => {
         panelId,
         ips,
       });
-      toast.success(`Se agregaron ${ips.length} IPs desde el CSV.`);
+      toast.success(`${ips.length} IPs added from CSV.`);
     } catch (err) {
-      toast.error("Error leyendo el archivo CSV.");
+      toast.error("Error reading the CSV file.");
     }
   };
 
@@ -436,18 +456,7 @@ const Workers = () => {
                 >
                   {panel.miners.filter(m => m.IP && m.IP.trim() !== "").length}/{selectedLocation.minersPerPanel || 60}
                 </span>
-                <Button
-                  className="bg-orange-light hover:bg-tmcblue"
-                  onClick={() => {
-                    setSelectedPanelForMiner(panel.id);
-                    setIsAddMinerDialogOpen(true);
-                    setEditingMiner(null);
-                    setMinerIPs(['']);
-                  }}
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Agregar IP
-                </Button>
+            
                 <Button
                   asChild
                   className="bg-tmcblue-light bg-orange-light cursor-pointer hover:bg-tmcblue ml-2"
@@ -466,32 +475,32 @@ const Workers = () => {
 
               </div>
               <div className="rounded-md border border-border">
-                <DataTable
-                  columns={columnsWithActions(panel.id)}
-                  data={panel.miners
-                    .filter(miner => miner.IP && miner.IP.trim() !== "") // <-- SOLO mineros con IP real
-                    .map(miner => {
-                      const wsData = workersRows.find(row => row.IP === miner.IP);
-                      return wsData
-                        ? { ...wsData, id: miner.id, IP: miner.IP }
-                        : {
-                          id: miner.id,
-                          IP: miner.IP,
-                          tipo: "",
-                          THSRT: "",
-                          THSAvg: "",
-                          eficiencia: "--",
-                          potencia: "--",
-                          temp: "--",
-                          uptime: "--",
-                          rendimiento: "--",
-                          status: "offline"
-                        };
-                    })
-                  }
-
-                  key={`${panel.id}-${panel.miners.length}`}
-                />
+       <DataTable
+    columns={columnsWithActions(panel.id)}
+    data={panel.miners
+      .filter(miner => miner.IP && miner.IP.trim() !== "") // SOLO mineros con IP real
+      .map(miner => {
+        // Compara IPs normalizadas
+        const wsData = workersRows.find(row => cleanIP(row.IP) === cleanIP(miner.IP));
+        return wsData
+          ? { ...wsData, id: miner.id, IP: miner.IP }
+          : {
+            id: miner.id,
+            IP: miner.IP,
+            tipo: "",
+            THSRT: "",
+            THSAvg: "",
+            eficiencia: "--",
+            potencia: "--",
+            temp: "--",
+            uptime: "--",
+            rendimiento: "--",
+            status: "offline"
+          };
+      })
+    }
+    key={`${panel.id}-${panel.miners.length}`}
+  />
               </div>
             </div>
           </TabsContent>

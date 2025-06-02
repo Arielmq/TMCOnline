@@ -134,18 +134,13 @@ export const MinerProvider = ({ children }) => {
         }
       }
 
-      // NO agregar más slots si ya llegaste al máximo
-      // Si quedan IPs sin asignar, simplemente las ignoras (o puedes mostrar un toast de "panel lleno")
-
-      // Si por algún motivo hay menos slots que maxSlots (no debería pasar), rellena con slots vacíos
-      if (miners.length < maxSlots) {
-        miners = [
-          ...miners,
-          ...Array.from({ length: maxSlots - miners.length }, () => ({
-            id: crypto.randomUUID(),
-            IP: "",
-          })),
-        ];
+      // Si quedan IPs sin asignar y hay espacio, agrega nuevos slots
+      while (ipIndex < ips.length && miners.length < maxSlots) {
+        miners.push({
+          id: crypto.randomUUID(),
+          IP: ips[ipIndex],
+        });
+        ipIndex++;
       }
 
       // Si hay más slots de los que corresponde (por error anterior), recorta

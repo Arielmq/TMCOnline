@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MinerData } from "@/types/miner";
 import "./minerPopUp.css";
-import AnimatedLineChartD3 from "../../components/AnimatedLineChartD3/AnimatedLineChartD3";
-import { useMinerStore } from "@/store/minerStore";
+
 
 interface MinerPopupProps {
   open: boolean;
