@@ -1,0 +1,9 @@
+.applyButtonHover {
+    border: solid 1px orange;   /* Borde por defecto */
+    border-radius: 10px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+.applyButtonHover:hover {
+    border-color: white;          /* Solo cambia el color en hover */
+}

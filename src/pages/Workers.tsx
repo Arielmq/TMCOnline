@@ -437,7 +437,7 @@ const Workers = () => {
                   {panel.miners.filter(m => m.IP && m.IP.trim() !== "").length}/{selectedLocation.minersPerPanel || 60}
                 </span>
                 <Button
-                  className="bg-tmcblue-light hover:bg-tmcblue"
+                  className="bg-orange-light hover:bg-tmcblue"
                   onClick={() => {
                     setSelectedPanelForMiner(panel.id);
                     setIsAddMinerDialogOpen(true);
@@ -450,7 +450,7 @@ const Workers = () => {
                 </Button>
                 <Button
                   asChild
-                  className="bg-tmcblue-light hover:bg-tmcblue ml-2"
+                  className="bg-tmcblue-light bg-orange-light cursor-pointer hover:bg-tmcblue ml-2"
                 >
                   <label>
                     <Plus className="mr-2 h-5 w-5" />

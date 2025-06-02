@@ -34,15 +34,15 @@ const Navbar = () => {
           <span className="navbar__toggle-bar"></span>
         </button>
         
-        <nav className={`navbar__menu ${isMobileMenuOpen ? 'navbar__menu--open' : ''}`}>
+        <nav  className={`navbar__menu ${isMobileMenuOpen ? 'navbar__menu--open' : ''}`}>
           <ul className="navbar__list">
-            <li className="navbar__item"><a href="#utility" className="navbar__link">Utility</a></li>
-            <li className="navbar__item"><a href="#why" className="navbar__link">Why Hashira AI</a></li>
-            <li className="navbar__item"><a href="#details" className="navbar__link">Details</a></li>
-            <li className="navbar__item"><a href="#ecosystem" className="navbar__link">Ecosystem</a></li>
-            <li className="navbar__item"><a href="#roadmap" className="navbar__link">Roadmap</a></li>
+          
+            <li className="navbar__item"><a href="#why" style={{color:"black",filter:"drop-shadow(0px 0px 2px orange)"}} className="navbar__link">Why Hashira AI</a></li>
+            <li className="navbar__item"><a href="#details" style={{color:"black",filter:"drop-shadow(0px 0px 2px orange)"}} className="navbar__link">Details</a></li>
+            <li className="navbar__item"><a href="#ecosystem" style={{color:"black",filter:"drop-shadow(0px 0px 2px orange)"}} className="navbar__link">Ecosystem</a></li>
+            <li className="navbar__item"><a href="#roadmap" style={{color:"black",filter:"drop-shadow(0px 0px 2px orange)"}} className="navbar__link">Roadmap</a></li>
             <li className="navbar__item navbar__item--cta">
-              <a href="/app" target="_blank" rel="noopener noreferrer" className="button button--primary">
+              <a style={{backgroundColor:"orange",padding:"10px",borderRadius:"5px",color:"black",fontWeight:"bold"}} href="/app" target="_blank" rel="noopener noreferrer" className="button button--primary">
                 Access Platform
               </a>
             </li>

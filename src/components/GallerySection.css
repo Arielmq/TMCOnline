@@ -1,0 +1,97 @@
+.gallerySection__container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 32px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 0 2vw;
+}
+
+.gallerySection__row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+  background-image: url("https://res.cloudinary.com/dllkefj8m/image/upload/v1748376083/Dise%C3%B1o_sin_t%C3%ADtulo_1_qysidd.png");
+  background-position: left;
+  background-size: 300px;
+  background-repeat: no-repeat;
+  border: solid 2px rgba(128, 128, 128, 0.055);
+  border-radius: 5px;
+  min-height: 320px;
+  height: auto;
+  padding: 24px 0;
+}
+
+.gallerySection__row--reverse {
+  flex-direction: row-reverse;
+  background-position: right;
+}
+
+.gallerySection__img-box {
+  flex: 1 1 220px;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.gallerySection__img {
+  width: 100%;
+  max-width: 340px;
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+  background: #181818;
+  object-fit: contain;
+}
+
+.gallerySection__text {
+  flex: 1 1 220px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  max-width: 420px;
+  min-width: 0;
+  padding: 0 2vw;
+}
+
+.gallerySection__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #f7931a;
+  text-shadow: 0 0 8px #181818;
+}
+
+.gallerySection__desc {
+  font-size: 1rem;
+  color: #e0e0e0;
+}
+
+@media (max-width: 900px) {
+  .gallerySection__row,
+  .gallerySection__row--reverse {
+    flex-direction: column !important;
+    gap: 18px;
+    text-align: center;
+    min-height: unset;
+    height: auto;
+    background-size: 180px;
+    background-position: top center;
+    padding: 18px 0;
+  }
+  .gallerySection__img-box,
+  .gallerySection__text {
+    max-width: 100%;
+    padding: 0 2vw;
+  }
+  .gallerySection__img {
+    max-width: 95vw;
+  }
+}

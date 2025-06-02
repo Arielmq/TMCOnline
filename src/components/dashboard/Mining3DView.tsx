@@ -202,7 +202,7 @@ const Mining3DView = () => {
       <p className="text-sm text-muted-foreground mb-4">Locations and panels</p>
       <Card className="bg-tmcdark-card border-border p-4">
         <Tabs defaultValue={displayedLocations[0]?.id} className="w-full h-full flex flex-col">
-          <TabsList className="grid grid-cols-4 mb-4">
+          <TabsList className="grid  text-center flex justify-center grid-cols-4 mb-4">
             {displayedLocations.map((location) => (
               <TabsTrigger
                 key={location.id}

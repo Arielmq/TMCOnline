@@ -7,7 +7,7 @@ import { useMiner } from '@/context/MinerContext';
 // Obtiene el subdominio desde localStorage o usa "tmcwatch" por defecto
 function getWsUrl() {
   const subdomain = localStorage.getItem("tunnelSubdomain") || "tmcwatch";
-  return `ws://${subdomain}.loca.lt`;
+  return `wss://${subdomain}.loca.lt`;
 }
 
 let socket: WebSocket | null = null;
@@ -32,7 +32,7 @@ export function connectToMinerAPI(
   const getFrontendIPs = () => {
     if (!Array.isArray(locations)) {
       console.error('Locations no es un arreglo:', locations);
-      toast.error('Error: No se pudieron obtener las IPs de los mineros');
+     
       return [];
     }
     const ips = locations.flatMap(loc =>
@@ -87,16 +87,16 @@ export function connectToMinerAPI(
               if (data.success) {
                 toast.success('IPs enviadas al servidor con éxito');
               } else {
-                toast.error('Error al enviar IPs al servidor: ' + (data.error || 'Desconocido'));
+               console.error('Error al enviar IPs al servidor: ' + (data.error || 'Desconocido'));
               }
             })
             .catch(error => {
               console.error('Error al enviar IPs al servidor:', error);
-              toast.error('Error al enviar IPs al servidor: ' + error.message);
+          
             });
         } else {
           console.warn('No hay IPs válidas para enviar al servidor');
-          toast.warning('No se encontraron IPs válidas para enviar');
+         
         }
       };
 
@@ -144,7 +144,7 @@ export function connectToMinerAPI(
           } else {
             console.log('No se recibieron datos válidos para las IPs:', frontendIPs);
             if (frontendIPs.length > 0) {
-              toast.warning('No se recibieron datos para las IPs configuradas');
+              console.log('No se recibieron datos para las IPs configuradas');
             }
           }
         } catch (error) {

@@ -35,11 +35,17 @@ export const MinerApiProvider = ({ children }) => {
   }, [locations]);
 
   useEffect(() => {
-    connect();
-    return () => {
-      if (disconnectRef.current) disconnectRef.current();
-    };
-  }, [connect]);
+  // Solo conecta si locations tiene datos válidos
+  if (!Array.isArray(locations) || locations.length === 0) {
+    setLoading(false);
+    setData(null);
+    return;
+  }
+  connect();
+  return () => {
+    if (disconnectRef.current) disconnectRef.current();
+  };
+}, [connect, locations]);
 
   const refetch = useCallback(() => {
     if (disconnectRef.current) disconnectRef.current();

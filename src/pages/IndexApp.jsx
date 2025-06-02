@@ -3,12 +3,12 @@ import StatCard from "@/components/dashboard/StatCard";
 import Mining3DView from "@/components/dashboard/Mining3DView";
 import { Card } from "@/components/ui/card";
 import { useMiner } from "@/context/MinerContext";
-import { LayoutGrid, Thermometer, Activity, ArrowDown } from "lucide-react";
+import { LayoutGrid, Thermometer, Activity, ArrowDown, Download, Pencil } from "lucide-react";
 import MinerApiMonitor from "@/components/miner-api/MinerApiMonitor";
 import { useEffect, useState, useRef } from "react";
 import { useMinerApi } from "@/hooks/useMinerApi";
 import { useNavigate } from "react-router-dom";
-
+import "./indexApp.css"
 // Utilidades para stats
 const mhsToThs = (mhs) => (mhs / 1_000_000).toFixed(2);
 
@@ -22,9 +22,9 @@ const Index = () => {
     avgTemperature: "N/A",
   });
   const [tunnelSubdomain, setTunnelSubdomain] = useState(() => {
-  return localStorage.getItem("tunnelSubdomain") || "tmcwatch";
-});
-const [isEditing, setIsEditing] = useState(false);
+    return localStorage.getItem("tunnelSubdomain") || "tmcwatch";
+  });
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   // Demo popup state
@@ -36,12 +36,9 @@ const [isEditing, setIsEditing] = useState(false);
     setShowDemoPopup(true);
   }, []);
 
-
   useEffect(() => {
-  localStorage.setItem("tunnelSubdomain", tunnelSubdomain);
-  // Si quieres que el WS_URL se actualice globalmente, puedes emitir un evento o usar contexto aquí
-}, [tunnelSubdomain]);
-
+    localStorage.setItem("tunnelSubdomain", tunnelSubdomain);
+  }, [tunnelSubdomain]);
 
   // Close popup on outside click or Escape
   useEffect(() => {
@@ -118,9 +115,6 @@ const [isEditing, setIsEditing] = useState(false);
 
     // 3. Stats
     const active = minersWithApi.filter((m) => m.status === "active");
-    const totalHashrate = minersWithApi.reduce(
-      (acc, m) => acc + (parseFloat(m.hashrate) || 0), 0
-    );
     const avgTemp =
       active.length > 0
         ? (
@@ -204,54 +198,53 @@ const [isEditing, setIsEditing] = useState(false);
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to Hashira AI</p>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-
-
-  {/* Download & Configure */}
-  <div className="bg-tmcdark-card border border-border rounded-lg p-4 flex flex-col justify-between">
-    <div>
-      <h3 className="font-bold text-lg mb-2">Download & configure</h3>
-      <a
-        href="https://github.com/hashira-ai/tmc-agent/releases/latest"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-400 underline mb-3 inline-block"
-      >
-        Download from here
-      </a>
-    </div>
-    <div className="mt-4">
-      <label className="block text-sm mb-1 font-medium text-muted-foreground">
-        Configure your tunnel
-      </label>
-      <div className="flex items-center">
-        <input
-          type="text"
-          value={tunnelSubdomain}
-          onChange={e => setTunnelSubdomain(e.target.value)}
-          disabled={!isEditing}
-          className="bg-tmcdark border border-border rounded px-2 py-1 text-white w-32 mr-2"
-          placeholder="subdomain"
-        />
-        <span className="text-muted-foreground text-sm mr-2">.loca.lt</span>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="px-2 py-1 text-xs bg-tmcblue-light text-white rounded hover:bg-tmcblue transition"
-        >
-          {isEditing ? "Save" : "Edit"}
-        </button>
-      </div>
-      <p className="text-xs text-muted-foreground mt-1">
-        WebSocket URL: <span className="font-mono">ws://{tunnelSubdomain || "tmcwatch"}.loca.lt</span>
-      </p>
-    </div>
+     <div className="relative flex flex-col md:flex-row items-center justify-center gap-6">
+  {/* Download - posición absoluta a la izquierda */}
+<div className="absolute  applyButtonHover left-0 top-1/2 -translate-y-1/2">
+  <div className="border  border-orange-400 bg-tmcdark px-4 py-2 rounded-lg shadow flex items-center gap-2">
+    <a
+      href="https://limewire.com/d/orFw2#cXApa62MOV"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-orange-400 underline font-medium flex items-center gap-2 text-base transition-colors hover:bg-white hover:text-orange-500 px-2 py-1 rounded"
+    >
+      <Download className="w-5 h-5" />
+      Download here
+    </a>
   </div>
 </div>
+  {/* Configure */}
+  <div className="mt-4 md:mt-0 flex flex-col items-center">
+    <label className="block text-sm mb-1 font-medium text-muted-foreground text-center">
+      Configure your tunnel
+    </label>
+    <div className="relative flex items-center w-full">
+      <input
+        type="text"
+        value={tunnelSubdomain}
+        onChange={e => setTunnelSubdomain(e.target.value)}
+        disabled={!isEditing}
+        className="bg-tmcdark border border-border rounded px-2 py-1 text-white w-32 pr-8"
+        placeholder="subdomain"
+      />
+      <button
+        type="button"
+        onClick={() => setIsEditing(!isEditing)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-orange-400 hover:bg-orange-500 text-white rounded p-1 transition"
+        tabIndex={-1}
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
+    </div>
+    <p className="text-xs text-muted-foreground mt-1 text-center">
+      WebSocket URL: <span className="font-mono">ws://{tunnelSubdomain || "tmcwatch"}.loca.lt</span>
+    </p>
+  </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Mining3DView />

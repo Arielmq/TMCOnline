@@ -184,7 +184,6 @@ const MinerPopup = ({ open, onClose, miner }: MinerPopupProps) => {
                 </div>
               </div>
 
-              <h1 style={{ fontSize: "50px", marginTop: "50px" }}>TMC</h1>
             </div>
 
             {/* Miner details */}
@@ -278,9 +277,7 @@ const MinerPopup = ({ open, onClose, miner }: MinerPopupProps) => {
                   </div>
                 </div>
 
-                <div className="col-span-2">
-                  <AnimatedLineChartD3 />
-                </div>
+           
               </div>
             </div>
           </div>

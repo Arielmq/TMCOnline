@@ -30,12 +30,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
     { title: "Dashboard",    icon: LayoutDashboard, path: "/app" },
     { title: "Workers",      icon: Cpu,             path: "/workers" },
      { title: "ASICs Check", icon: Cpu, path: "/asics-check" },
-
     { title: "Health Check", icon: Activity,        path: "/health-check" },
     { title: "How It Works", icon: HelpCircle,      path: "/how-it-works" },
-    { title: "Quote",        icon: FileText,        path: "/quote" },
     { title: "Contact",      icon: MessageSquare,   path: "/contact" },
-    { title: "Cloud Mining", icon: Cloud,           path: "/cloud-mining" },
+   
    
   ];
 

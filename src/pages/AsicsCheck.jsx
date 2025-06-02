@@ -149,43 +149,46 @@ const AsicsCheck = () => {
         </p>
       </div>
       <Card className="max-w-5xl mx-auto bg-tmcdark-card border-border">
-        <CardHeader>
-          <CardTitle>ASICs by Location and Panel</CardTitle>
-        </CardHeader>
+  
         <CardContent>
           {!hasPanels ? (
             <div className="text-center text-muted-foreground py-8">
               No locations or panels configured.<br />
               <Link
                 to="/workers"
-                className="inline-block mt-4 px-6 py-2 bg-tmcblue-light text-white rounded hover:bg-tmcblue transition"
-              >
+                className="inline-block mt-4 px-6 py-2 bg-tmcblue-light text-white rounded hover:bg-tmcblue transition">
                 Go to /workers to create them
               </Link>
+
             </div>
           ) : (
             locations.map((location) => (
               <div key={location.id} className="mb-8">
-                <h2 className="text-lg font-semibold mb-2">{location.name}</h2>
+                
+                <h2   style={{ position:"relative"
+                    , top:"40px",
+                    color:"orange"
+                      }} className="text-lg font-semibold mb-2">{location.name}</h2>
                 {/* Panel navigation */}
-                <nav className="flex flex-wrap justify-center gap-2 mb-4">
-                  {location.panels.map((panel) => (
-                    <button
-                      key={panel.id}
-                      className={`px-4 py-1 rounded-full border font-medium transition-colors text-xs
-                        ${
-                          selectedPanels[location.id] === panel.id
-                            ? "bg-tmcblue-light text-white border-tmcblue-light shadow"
-                            : "bg-tmcdark text-tmcblue-light border-tmcblue-light hover:bg-tmcblue-light/20"
-                        }
-                      `}
-                      onClick={() => handlePanelSelect(location.id, panel.id)}
-                      type="button"
-                    >
-                      Panel {panel.number}
-                    </button>
-                  ))}
-                </nav>
+            <nav className="flex flex-wrap justify-center gap-2 mb-4">
+  {location.panels.map((panel) => (
+    <button
+      key={panel.id}
+      className={
+        `px-4 py-1 rounded-full border font-medium transition-colors text-xs z-10 ` +
+        (selectedPanels[location.id] === panel.id
+          ? "bg-orange border-orange-400 text-white shadow"
+          : "bg-tmcdark text-orange-400 border-orange-400 hover:bg-orange hover:text-white")
+      }
+      onClick={() => handlePanelSelect(location.id, panel.id)}
+      type="button"
+      tabIndex={0}
+      style={{ minWidth: 80, cursor: "pointer" }}
+    >
+      Panel {panel.number}
+    </button>
+  ))}
+</nav>
                 {location.panels
                   .filter(
                     (panel) =>
@@ -193,37 +196,48 @@ const AsicsCheck = () => {
                       selectedPanels[location.id] === panel.id
                   )
                   .map((panel) => (
-                    <div key={panel.id} className="mb-4">
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {filterValidMiners(panel.miners).length === 0 ? (
-                          <span className="text-sm text-muted-foreground">
-                            No miners configured in this panel.
-                          </span>
-                        ) : (
-                          filterValidMiners(panel.miners).map((miner) => {
-                            const wsData = getWsMinerData(miner.IP);
-                            return (
-                              <Button
-                                key={miner.id}
-                                variant="outline"
-                                className="rounded px-3 py-2 text-xs bg-tmcdark hover:bg-tmcblue-light border border-tmcblue-light flex items-center gap-1"
-                                onClick={() =>
-                                  handleMinerClick(
-                                    miner,
-                                    wsData,
-                                    location.name,
-                                    panel.number
-                                  )
-                                }
-                              >
-                                {icons.chip}
-                                {miner.IP}
-                              </Button>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
+                  <div key={panel.id} className="mb-4">
+  <div style={{backgroundColor:"#121212",padding:"20px",borderRadius:"5px"}} className="flex flex-wrap gap-2 justify-center w-full">
+    {filterValidMiners(panel.miners)
+      // Solo mostrar miners que tengan datos de hashboards (slots)
+      .filter((miner) => {
+        const wsData = getWsMinerData(miner.IP);
+        return wsData && Array.isArray(wsData.hashboards) && wsData.hashboards.length > 0;
+      })
+      .length === 0 ? (
+        <span className="text-sm text-muted-foreground">
+          No miners configured in this panel.
+        </span>
+      ) : (
+        filterValidMiners(panel.miners)
+          .filter((miner) => {
+            const wsData = getWsMinerData(miner.IP);
+            return wsData && Array.isArray(wsData.hashboards) && wsData.hashboards.length > 0;
+          })
+          .map((miner) => {
+            const wsData = getWsMinerData(miner.IP);
+            return (
+              <Button
+  key={miner.id}
+  variant="outline"
+  className="rounded px-3 py-2 text-xs bg-tmcdark border border-tmcblue-light flex items-center gap-1 hover:bg-orange hover:text-white transition-colors"
+  onClick={() =>
+    handleMinerClick(
+      miner,
+      wsData,
+      location.name,
+      panel.number
+    )
+  }
+>
+  {icons.chip}
+  {miner.IP}
+</Button>
+            );
+          })
+      )}
+  </div>
+</div>
                   ))}
               </div>
             ))

@@ -1,75 +1,38 @@
-import React, { useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import HeroSection from '../components/HeroSection';
-import TokenUtility from '../components/TokenUtility';
-import WhyDifferent from '../components/WhyDifferent';
-import TechnicalDetails from '../components/TechnicalDetails';
-import Ecosystem from '../components/Ecosystem';
-import Roadmap from '../components/Roadmap';
-import FinalCTA from '../components/FinalCTA';
-import WhoAre from "../components/WhoAre"
-import Footer from '../components/Footer';
-import "../styles/main.css"
+import NavBar from '../components/NavBar'
 
-const Home = () => {
-  useEffect(() => {
-    // Initialize animations on scroll
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -100px 0px'
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-in');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-    
-    document.querySelectorAll('.animate').forEach(el => {
-      observer.observe(el);
-    });
-    
-    // Handle smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href');
-        if (targetId === '#') return;
-        
-        const targetElement = document.querySelector(targetId);
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 80, // Adjust for navbar height
-            behavior: 'smooth'
-          });
-        }
-      });
-    });
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
+import HeroContent from '../components/HeroContent'
+import AboutUs from '../components/AboutUs'
+import './indexApp.css'
+import HowItWorks from '../components/HowItWorks'
+import PreSale from "../components/PreSale"
+import Contact from '../components/ContactTrial'
+import Footer from '../components/Footer'
+import TokenSection from '../components/TokenSection'
+import GallerySection from '../components/GallerySection'
 
+function Home() {
   return (
-    <div className="tmc">
-      <Navbar />
-      <main className="tmc__main">
-        <HeroSection />
-        <TokenUtility />
-        <WhyDifferent />
-        <TechnicalDetails />
-        <Ecosystem />
-        <Roadmap />
-        <FinalCTA />
-       < WhoAre />
+    <>
+      <main>
+        <NavBar />
       </main>
+      <section id="why">
+        <HeroContent />
+      </section>
+      <section id="details">
+        <AboutUs />
+      </section>
+      <section id="ecosystem" className='bgSectionCont'>
+        <HowItWorks />
+        <Contact />
+        <PreSale />
+      </section>
+      <section id="roadmap">
+        <GallerySection />
+        <TokenSection />
+      </section>
       <Footer />
-    </div>
-  );
-};
-
-export default Home;
+    </>
+  )
+}
+export default Home

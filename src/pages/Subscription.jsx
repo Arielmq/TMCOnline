@@ -35,59 +35,59 @@ const Subscription = () => {
   }, [membership, connected, wallet]);
 
   const handleConnectWallet = async () => {
-  try {
-    // Verificar si Phantom está instalado
-    if (!window.solana || !window.solana.isPhantom) {
-      toast.error('Phantom no detectado. Instala la extensión de Phantom en tu navegador.');
-      window.open('https://phantom.app/', '_blank');
-      return;
-    }
+    try {
+      // Check if Phantom is installed
+      if (!window.solana || !window.solana.isPhantom) {
+        toast.error('Phantom not detected. Please install the Phantom extension in your browser.');
+        window.open('https://phantom.app/', '_blank');
+        return;
+      }
 
-    // Seleccionar el adaptador de Phantom si no está seleccionado
-    if (!wallet || wallet.adapter.name !== 'Phantom') {
-      const phantomAdapter = new PhantomWalletAdapter({ network: WalletAdapterNetwork.Devnet });
-      select(phantomAdapter.name);
-      // Esperar un breve momento para asegurar que el adaptador esté listo
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      // Select Phantom adapter if not selected
+      if (!wallet || wallet.adapter.name !== 'Phantom') {
+        const phantomAdapter = new PhantomWalletAdapter({ network: WalletAdapterNetwork.Devnet });
+        select(phantomAdapter.name);
+        // Wait a moment to ensure the adapter is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
-    // Verificar el estado del adaptador antes de conectar
-    if (wallet?.adapter?.readyState !== 'Installed') {
-      toast.error('El monedero Phantom no está listo. Asegúrate de que la extensión esté activa y desbloqueada.');
-      return;
-    }
+      // Check adapter state before connecting
+      if (wallet?.adapter?.readyState !== 'Installed') {
+        toast.error('Phantom wallet is not ready. Make sure the extension is active and unlocked.');
+        return;
+      }
 
-    // Intentar conectar
-    await connect();
-    toast.success('Wallet Phantom conectado exitosamente');
-  } catch (error) {
-    console.error('Error al conectar el wallet:', error);
-    if (error.name === 'WalletNotReadyError') {
-      toast.error('Phantom no está listo. Asegúrate de que la extensión esté activa y desbloqueada.');
-    } else if (error.name === 'WalletNotSelectedError') {
-      toast.error('No se ha seleccionado un monedero. Por favor, intenta de nuevo.');
-    } else {
-      toast.error(`Error al conectar Phantom: ${error.message}`);
+      // Try to connect
+      await connect();
+      toast.success('Phantom wallet connected successfully');
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      if (error.name === 'WalletNotReadyError') {
+        toast.error('Phantom is not ready. Make sure the extension is active and unlocked.');
+      } else if (error.name === 'WalletNotSelectedError') {
+        toast.error('No wallet selected. Please try again.');
+      } else {
+        toast.error(`Error connecting Phantom: ${error.message}`);
+      }
     }
-  }
-};
+  };
 
 
   const handlePlanSelection = async (plan) => {
     if (!user) {
-      toast.error('Debes iniciar sesión para seleccionar un plan');
+      toast.error('You must be logged in to select a plan');
       navigate('/auth');
       return;
     }
 
     if (!connected || !publicKey) {
-      toast.error('Por favor, conecta tu wallet de Phantom');
+      toast.error('Please connect your Phantom wallet');
       handleConnectWallet(); // Attempt to connect if not connected
       return;
     }
 
     if (membership?.plan === plan && plan !== 'free') {
-      toast.info('Ya tienes este plan activo');
+      toast.info('You already have this plan active');
       return;
     }
 
@@ -126,13 +126,13 @@ const Subscription = () => {
       const result = await verifyPayment({ transactionSignature: signature, plan });
 
       if (result.data.success) {
-        toast.success('Pago exitoso. Tu membresía ha sido activada.');
+        toast.success('Payment successful. Your membership has been activated.');
         navigate('/app');
       } else {
-        toast.error('Error al verificar el pago.');
+        toast.error('Error verifying payment.');
       }
     } catch (error) {
-      console.error('Error al procesar el pago:', error);
+      console.error('Error processing payment:', error);
       toast.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);
@@ -142,15 +142,15 @@ const Subscription = () => {
   return (
     <MainLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Suscripción</h1>
-        <p className="text-muted-foreground">Elige el plan que mejor se adapte a tus necesidades</p>
+        <h1 className="text-2xl font-bold">Subscription</h1>
+        <p className="text-muted-foreground">Choose the plan that best fits your needs</p>
       </div>
 
       {/* Wallet connection button */}
       {!connected && (
         <div className="mb-6 p-4 bg-grey-50 border border-border rounded-lg">
           <p className="text-muted-foreground mb-2">
-            Necesitas conectar tu wallet de Phantom para seleccionar un plan de pago.
+            You need to connect your Phantom wallet to select a paid plan.
           </p>
           <Button  onClick={handleConnectWallet} className="bg-blue-600 hover:bg-blue-700 phantomButton">
         {"  "}
@@ -162,21 +162,21 @@ const Subscription = () => {
         {/* Free Plan */}
         <Card className="p-6 border-2 border-border bg-grey-50">
           <div className="mb-4">
-            <h3 className="text-xl font-bold">Plan Gratuito</h3>
-            <p className="text-3xl font-bold mt-2">0 SOL<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+            <h3 className="text-xl font-bold">Free Plan</h3>
+            <p className="text-3xl font-bold mt-2">0 SOL<span className="text-sm font-normal text-muted-foreground">/month</span></p>
           </div>
           <ul className="space-y-2 mb-6">
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Acceso básico al panel</span>
+              <span>Basic dashboard access</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Monitoreo de hasta 3 mineros</span>
+              <span>Monitor up to 3 miners</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Alertas básicas</span>
+              <span>Basic alerts</span>
             </li>
           </ul>
           <Button
@@ -185,37 +185,37 @@ const Subscription = () => {
             onClick={() => handlePlanSelection('free')}
             disabled={loading || membership?.plan === 'free'}
           >
-            {membership?.plan === 'free' ? 'Plan Actual' : 'Seleccionar Plan'}
+            {membership?.plan === 'free' ? 'Current Plan' : 'Select Plan'}
           </Button>
         </Card>
 
         {/* Premium Plan */}
         <Card className="p-6 border-2 border-bitcoin bg-grey-50 relative">
-          <div className="absolute -top-3 right-4 bg-bitcoin text-black text-xs font-bold py-1 px-3 rounded-full">Recomendado</div>
+          <div className="absolute -top-3 right-4 bg-bitcoin text-black text-xs font-bold py-1 px-3 rounded-full">Recommended</div>
           <div className="mb-4">
-            <h3 className="text-xl font-bold">Plan Premium</h3>
-            <p className="text-3xl font-bold mt-2">{PREMIUM_PRICE_SOL} SOL<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+            <h3 className="text-xl font-bold">Premium Plan</h3>
+            <p className="text-3xl font-bold mt-2">{PREMIUM_PRICE_SOL} SOL<span className="text-sm font-normal text-muted-foreground">/month</span></p>
           </div>
           <ul className="space-y-2 mb-6">
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Acceso completo al panel</span>
+              <span>Full dashboard access</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Monitoreo ilimitado de mineros</span>
+              <span>Unlimited miner monitoring</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Alertas avanzadas en tiempo real</span>
+              <span>Advanced real-time alerts</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Análisis de rendimiento</span>
+              <span>Performance analysis</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Soporte prioritario</span>
+              <span>Priority support</span>
             </li>
           </ul>
           <Button
@@ -223,10 +223,10 @@ const Subscription = () => {
             onClick={() => handlePlanSelection('premium')}
             disabled={loading}
           >
-            {loading ? 'Procesando...' : (
+            {loading ? 'Processing...' : (
               <>
                 <Zap className="h-4 w-4" />
-                {membership?.plan === 'premium' ? 'Plan Actual' : 'Seleccionar Plan'}
+                {membership?.plan === 'premium' ? 'Current Plan' : 'Select Plan'}
               </>
             )}
           </Button>
@@ -235,29 +235,29 @@ const Subscription = () => {
         {/* Enterprise Plan */}
         <Card className="p-6 border-2 border-border bg-grey-50">
           <div className="mb-4">
-            <h3 className="text-xl font-bold">Plan Empresarial</h3>
-            <p className="text-3xl font-bold mt-2">{ENTERPRISE_PRICE_SOL} SOL<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+            <h3 className="text-xl font-bold">Enterprise Plan</h3>
+            <p className="text-3xl font-bold mt-2">{ENTERPRISE_PRICE_SOL} SOL<span className="text-sm font-normal text-muted-foreground">/month</span></p>
           </div>
           <ul className="space-y-2 mb-6">
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Todo lo del Plan Premium</span>
+              <span>Everything in Premium Plan</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>API dedicada</span>
+              <span>Dedicated API</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Gestión multiubicación</span>
+              <span>Multi-location management</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Soporte 24/7</span>
+              <span>24/7 support</span>
             </li>
             <li className="flex items-center">
               <Check className="h-5 w-5 text-green-500 mr-2" />
-              <span>Personalización completa</span>
+              <span>Full customization</span>
             </li>
           </ul>
           <Button
@@ -265,10 +265,10 @@ const Subscription = () => {
             onClick={() => handlePlanSelection('enterprise')}
             disabled={loading}
           >
-            {loading ? 'Procesando...' : (
+            {loading ? 'Processing...' : (
               <>
                 <Zap className="h-4 w-4" />
-                {membership?.plan === 'enterprise' ? 'Plan Actual' : 'Seleccionar Plan'}
+                {membership?.plan === 'enterprise' ? 'Current Plan' : 'Select Plan'}
               </>
             )}
           </Button>
@@ -276,11 +276,11 @@ const Subscription = () => {
       </div>
 
       <div className="mt-8 p-4 bg-grey-50 border border-border rounded-lg">
-        <h3 className="text-lg font-medium mb-2">¿Por qué suscribirse?</h3>
+        <h3 className="text-lg font-medium mb-2">Why subscribe?</h3>
         <p className="text-muted-foreground">
-          Con una suscripción premium, obtienes acceso a herramientas avanzadas de monitoreo y análisis
-          que te ayudarán a maximizar la rentabilidad de tu minería de Bitcoin. Nuestras alertas en tiempo real
-          te ayudan a reaccionar al instante ante cualquier problema.
+          With a premium subscription, you get access to advanced monitoring and analytics tools
+          that help you maximize the profitability of your Bitcoin mining. Our real-time alerts
+          help you react instantly to any issue.
         </p>
       </div>
     </MainLayout>
