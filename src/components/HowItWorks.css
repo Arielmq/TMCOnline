@@ -16,6 +16,13 @@
    
 }
 
+@media(max-width:693px){
+    .howItWorks__flexDiv{
+        display: flex !important;
+        flex-direction: column !important;
+    }
+}
+
 .howItWorks__image {
     flex: 1;
     min-width: 280px;

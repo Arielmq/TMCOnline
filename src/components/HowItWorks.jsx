@@ -32,7 +32,7 @@ const HowItWorks = () => {
 
     <div className="howItWorks__container">
       <h2 className="howItWorks__title">How it works</h2>
-   <div style={{ display: 'flex', gap: '20px', flexDirection: 'row', alignItems: 'center',justifyContent: 'center' ,margin:" 0 auto"}}> 
+   <div className='howItWorks__flexDiv' style={{ display: 'flex', gap: '20px', flexDirection: 'row', alignItems: 'center',justifyContent: 'center' ,margin:" 0 auto"}}> 
       <div className="howItWorks__image">
         <img src={steps[openIndex].img} alt={steps[openIndex].title} />
       </div>
