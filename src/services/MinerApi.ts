@@ -14,6 +14,7 @@ let socket: WebSocket | null = null;
 let reconnectInterval = 5000;
 const maxReconnectInterval = 50000;
 let callbacks: ((data: MinerApiResponse) => void)[] = [];
+let lastSentIPs: string[] = [];
 
 export function connectToMinerAPI(
   locations: any[],
@@ -32,7 +33,6 @@ export function connectToMinerAPI(
   const getFrontendIPs = () => {
     if (!Array.isArray(locations)) {
       console.error('Locations no es un arreglo:', locations);
-     
       return [];
     }
     const ips = locations.flatMap(loc =>
@@ -46,28 +46,27 @@ export function connectToMinerAPI(
           )
         : []
     );
-    console.log('IPs del frontend obtenidas:', ips);
     return ips;
   };
 
   const connect = () => {
     try {
       const WS_URL = getWsUrl();
-      console.log('Conectando al servidor WebSocket:', WS_URL);
       socket = new WebSocket(WS_URL);
 
       socket.onopen = () => {
-        console.log('WebSocket conectado');
         toast.success('Conectado al servidor de monitoreo');
         reconnectInterval = 5000;
 
-        // Enviar las IPs al servidor después de conectar
+        // Enviar las IPs solo si han cambiado
         const frontendIPs = getFrontendIPs();
-        console.log('Listo para recibir datos del WebSocket. IPs:', frontendIPs);
-
-        if (frontendIPs.length > 0) {
+        if (
+          frontendIPs.length > 0 &&
+          (lastSentIPs.length !== frontendIPs.length ||
+            !frontendIPs.every((ip, i) => ip === lastSentIPs[i]))
+        ) {
+          lastSentIPs = [...frontendIPs];
           const userId = 'default-user'; // Ajusta según tu lógica para obtener el userId
-          console.log('Enviando IPs al servidor:', { userId, ips: frontendIPs });
           fetch(`https://${localStorage.getItem("tunnelSubdomain") || "tmcwatch"}.loca.lt/api/set-miner-ips`, {
             method: 'POST',
             headers: {
@@ -83,78 +82,69 @@ export function connectToMinerAPI(
               return response.json();
             })
             .then(data => {
-              console.log('Respuesta del servidor al enviar IPs:', data);
               if (data.success) {
                 toast.success('IPs enviadas al servidor con éxito');
               } else {
-               console.error('Error al enviar IPs al servidor: ' + (data.error || 'Desconocido'));
+                console.error('Error al enviar IPs al servidor: ' + (data.error || 'Desconocido'));
               }
             })
             .catch(error => {
               console.error('Error al enviar IPs al servidor:', error);
-          
             });
-        } else {
-          console.warn('No hay IPs válidas para enviar al servidor');
-         
         }
       };
 
-      socket.onmessage = (event) => {
-        try {
-          const rawData = JSON.parse(event.data);
-          console.log('Datos crudos del WebSocket recibidos:', JSON.stringify(rawData, null, 2));
+ socket.onmessage = (event) => {
+  try {
+    const rawData = JSON.parse(event.data);
 
-          if (rawData.error) {
-            console.error('Error recibido del WebSocket:', rawData.error);
-            toast.error(`Error del servidor: ${rawData.error}`);
-            return;
-          }
+    if (rawData.error) {
+      toast.error(`Error del servidor: ${rawData.error}`);
+      // NO limpiar el estado si hay error
+      return;
+    }
 
-          const frontendIPs = getFrontendIPs();
-          console.log('IPs del frontend para filtrado:', frontendIPs);
+    const frontendIPs = getFrontendIPs();
 
-          if (!Array.isArray(rawData.miners)) {
-            console.warn('rawData.miners no es un arreglo:', rawData.miners);
-            return;
-          }
+    if (!Array.isArray(rawData.miners)) {
+      // NO limpiar el estado si la respuesta no tiene mineros
+      return;
+    }
 
-          const filteredMiners = rawData.miners.filter(miner => frontendIPs.includes(miner.ip));
-          const rejectedMiners = rawData.miners.filter(miner => miner.status === 'rejected');
-          if (rejectedMiners.length > 0) {
-            console.warn('Miners rechazados:', rejectedMiners);
-            rejectedMiners.forEach(miner => {
-              toast.error(`Error en IP ${miner.ip}: ${miner.data.error}`);
-            });
-          }
+    const filteredMiners = rawData.miners.filter(miner => frontendIPs.includes(miner.ip));
+    const rejectedMiners = rawData.miners.filter(miner => miner.status === 'rejected');
+    if (rejectedMiners.length > 0) {
+      rejectedMiners.forEach(miner => {
+        toast.error(`Error en IP ${miner.ip}: ${miner.data.error}`);
+      });
+    }
 
-          const data: MinerApiResponse = {
-            ...rawData,
-            cycleId: rawData.cycleId || rawData.timestamp || Date.now().toString(),
-            miners: filteredMiners.map((miner) => ({
-              ...miner,
-              ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
-            })),
-          };
-          console.log('Datos procesados del WebSocket:', data);
+    const data: MinerApiResponse = {
+      ...rawData,
+      cycleId: rawData.cycleId || rawData.timestamp || Date.now().toString(),
+      miners: filteredMiners.map((miner) => ({
+        ...miner,
+        ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
+      })),
+    };
 
-          if (data.miners.length > 0) {
-            useMinerStore.getState().updateMiners(data);
-            callbacks.forEach((cb) => cb(data));
-          } else {
-            console.log('No se recibieron datos válidos para las IPs:', frontendIPs);
-            if (frontendIPs.length > 0) {
-              console.log('No se recibieron datos para las IPs configuradas');
-            }
-          }
-        } catch (error) {
-          console.error('Error procesando mensaje del WebSocket:', error);
-        }
-      };
+    // SIEMPRE actualiza el timestamp, pero solo actualiza los mineros si hay nuevos
+    if (data.miners.length > 0) {
+      useMinerStore.getState().updateMiners(data);
+      callbacks.forEach((cb) => cb(data));
+    } else {
+      // Solo actualiza el timestamp para que la UI sepa que hubo ciclo, pero no borra mineros
+      useMinerStore.setState((state) => ({
+        ...state,
+        timestamp: data.timestamp || new Date().toISOString(),
+      }));
+    }
+  } catch (error) {
+    console.error('Error procesando mensaje del WebSocket:', error);
+  }
+};
 
       socket.onclose = (event) => {
-        console.log('WebSocket cerrado. Código:', event.code, 'Razón:', event.reason);
-        console.log('Intentando reconexión en', reconnectInterval / 1000, 'segundos...');
         setTimeout(() => {
           connect();
         }, reconnectInterval);
@@ -162,11 +152,9 @@ export function connectToMinerAPI(
       };
 
       socket.onerror = (error) => {
-        console.error('Error en WebSocket:', error);
         socket?.close();
       };
     } catch (error) {
-      console.error('Error conectando al WebSocket:', error);
       setTimeout(() => {
         connect();
       }, reconnectInterval);
@@ -193,14 +181,10 @@ export function useMinerApi() {
   const timestamp = useMinerStore((state) => state.timestamp);
 
   useEffect(() => {
-    console.log('Iniciando conexión WebSocket con locations:', locations);
-    if (!Array.isArray(locations)) {
-      console.error('Locations no es un arreglo en useMinerApi:', locations);
-      return;
-    }
+    if (!Array.isArray(locations)) return;
     const unsubscribe = connectToMinerAPI(locations);
     return () => unsubscribe();
-  }, [locations, localStorage.getItem("tunnelSubdomain")]); // Se reconecta si cambia el subdominio
+  }, [locations, localStorage.getItem("tunnelSubdomain")]);
 
   return {
     data: {

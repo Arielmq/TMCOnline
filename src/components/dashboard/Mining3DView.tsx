@@ -16,7 +16,7 @@ type FilterType = "all" | "online";
 // Helper para extraer letra de panel y slot del worker
 function parseWorker(worker: string) {
   // Ejemplo: Adrianm211120.ZC007
-   const match = worker?.match(/\.Z([A-Z])(\d{3})/i);
+  const match = worker?.match(/\.Z([A-Z])(\d{3})/i);
   if (!match) return { panel: null, slot: null };
   return {
     panel: match[1].toUpperCase(),
@@ -70,7 +70,7 @@ const Mining3DView = () => {
       _parsed: parseWorker(data.pool?.worker || miner.Worker1 || ""),
     };
   };
-  
+
   // Validate if locations data is complete
   const isValidLocationsData = (locations: LocationData[]): boolean => {
     return (
@@ -170,18 +170,18 @@ const Mining3DView = () => {
         <Card className="bg-tmcdark-card border-border p-4">
           <ScrollArea>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 p-4">
-             {minersWithWSData
-  .filter((miner) => miner.IP && miner.IP.trim() !== "")
-  .map((miner) => (
-    <div
-      key={miner.IP}
-      className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
-      onClick={() => handleMinerClick(miner)}
-      title={`Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`}
-    >
-      <MinerVisualization miner={miner} />
-    </div>
-  ))}
+              {minersWithWSData
+                .filter((miner) => miner.IP && miner.IP.trim() !== "")
+                .map((miner) => (
+                  <div
+                    key={miner.IP}
+                    className="cursor-pointer hover:scale-105 transition-transform flex justify-center"
+                    onClick={() => handleMinerClick(miner)}
+                    title={`Worker: ${miner.Worker1 || ""} | Slot: ${miner._parsed.slot ?? "?"}`}
+                  >
+                    <MinerVisualization miner={miner} />
+                  </div>
+                ))}
             </div>
           </ScrollArea>
         </Card>
@@ -230,24 +230,24 @@ const Mining3DView = () => {
                   <div className="grid grid-cols-2 gap-4 max-[1366px]:grid-cols-1" style={{ gridTemplateColumns: undefined }}>
                     {location.panels.map((panel) => {
                       // Mapea los mineros del panel con los datos del WebSocket y parsea worker
-                     let minersWithWSData = panel.miners.map(getMinerWithWSData)
-  .map(miner => {
-    const parsed = parseWorker(miner.Worker1 || miner.ActivePool || "");
-    // Forzar la letra del panel según el número del panel
-    const panelLetter = String.fromCharCode(65 + (panel.number - 1));
-    return {
-      ...miner,
-      _parsed: {
-        panel: panelLetter,
-        slot: parsed.slot,
-      },
-    };
-  })
-  .sort((a, b) => {
-    if (a._parsed.slot == null) return 1;
-    if (b._parsed.slot == null) return -1;
-    return a._parsed.slot - b._parsed.slot;
-  });
+                      let minersWithWSData = panel.miners.map(getMinerWithWSData)
+                        .map(miner => {
+                          const parsed = parseWorker(miner.Worker1 || miner.ActivePool || "");
+                          // Forzar la letra del panel según el número del panel
+                          const panelLetter = String.fromCharCode(65 + (panel.number - 1));
+                          return {
+                            ...miner,
+                            _parsed: {
+                              panel: panelLetter,
+                              slot: parsed.slot,
+                            },
+                          };
+                        })
+                        .sort((a, b) => {
+                          if (a._parsed.slot == null) return 1;
+                          if (b._parsed.slot == null) return -1;
+                          return a._parsed.slot - b._parsed.slot;
+                        });
 
                       // Panel letter
                       const panelLetter = String.fromCharCode(65 + (panel.number - 1));
@@ -276,7 +276,7 @@ const Mining3DView = () => {
                               {minersWithWSData.map((miner, idx) => {
                                 const hasValidMiner = miner && miner.IP && miner.IP.trim() !== "";
                                 let thsValue = hasValidMiner && miner.THSRT ? Math.round(miner.THSRT) : 0;
-                                if (!Number.isFinite(thsValue) || thsValue > 999) thsValue = 0;
+                                if (!Number.isFinite(thsValue) || thsValue > 160) thsValue = 0;
 
                                 let textClass = "";
                                 let shadow = "";
