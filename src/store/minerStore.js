@@ -2,54 +2,69 @@ import { create } from 'zustand';
 
 export const useMinerStore = create((set, get) => {
   // Cargar datos iniciales desde localStorage
- const savedMiners = localStorage.getItem('miners');
+  const savedMiners = localStorage.getItem('miners');
   const initialMiners = savedMiners ? JSON.parse(savedMiners) : [];
 
-   return {
-    
+  // Estado temporal para acumulación de lotes
+  let batchAccumulator = [];
+  let batchCount = 0;
+  let expectedBatches = 1;
+
+  return {
     miners: Array.isArray(initialMiners) ? initialMiners : [],
     timestamp: new Date().toISOString(),
-   updateMiners: (data) => {
-  set((state) => {
-    // Normaliza todas las IPs a minúsculas y usa 'ip' como clave
-    const normalizeIp = (ip) => (ip || "").trim().toLowerCase();
 
-    // Crear un mapa de mineros existentes para actualizaciones eficientes
-    const minerMap = new Map(
-      state.miners.map((m) => [normalizeIp(m.ip || m.IP), m])
-    );
+    // Llama a este método por cada lote recibido
+    accumulateMinersBatch: (data, batchIndex, totalBatches) => {
+      // batchIndex: número del lote recibido (empezando en 1)
+      // totalBatches: total de lotes esperados
 
-    // Actualizar o añadir mineros del lote actual
-    data.miners.forEach((apiMiner) => {
-      const minerData = {
-        ...apiMiner.data,
-        ip: apiMiner.ip || apiMiner.IP,
-        status: apiMiner.status,
-        error:
-          apiMiner.status === "rejected"
-            ? apiMiner.data?.error || "No se pudo conectar"
-            : apiMiner.data?.error,
-      };
+      if (batchIndex === 1) {
+        // Si es el primer lote, reinicia el acumulador
+        batchAccumulator = [];
+        batchCount = 0;
+        expectedBatches = totalBatches;
+      }
 
-      const key = normalizeIp(minerData.ip);
-      minerMap.set(key, {
-        ...minerMap.get(key), // Preservar datos existentes
-        ...minerData, // Sobrescribir con nuevos datos
-      });
-    });
+      // Acumula los mineros de este lote
+      batchAccumulator = batchAccumulator.concat(data.miners);
+      batchCount++;
 
-    // NO eliminar mineros que no llegaron en el lote, solo actualiza los que sí llegaron
-    const updatedMiners = Array.from(minerMap.values());
+      // Si ya llegaron todos los lotes, actualiza el store
+      if (batchCount === expectedBatches) {
+        set((state) => {
+          const normalizeIp = (ip) => (ip || "").trim().toLowerCase();
+          const minerMap = new Map(
+            state.miners.map((m) => [normalizeIp(m.ip || m.IP), m])
+          );
 
-    // Guardar en localStorage
-    localStorage.setItem("miners", JSON.stringify(updatedMiners));
-    localStorage.setItem("miners_timestamp", new Date().toISOString());
+          batchAccumulator.forEach((apiMiner) => {
+            const minerData = {
+              ...apiMiner.data,
+              ip: apiMiner.ip || apiMiner.IP,
+              status: apiMiner.status,
+              error:
+                apiMiner.status === "rejected"
+                  ? apiMiner.data?.error || "No se pudo conectar"
+                  : apiMiner.data?.error,
+            };
+            const key = normalizeIp(minerData.ip);
+            minerMap.set(key, {
+              ...minerMap.get(key),
+              ...minerData,
+            });
+          });
 
-    return {
-      miners: updatedMiners,
-      timestamp: new Date().toISOString(),
-    };
-  });
-},
+          const updatedMiners = Array.from(minerMap.values());
+          localStorage.setItem("miners", JSON.stringify(updatedMiners));
+          localStorage.setItem("miners_timestamp", new Date().toISOString());
+
+          return {
+            miners: updatedMiners,
+            timestamp: new Date().toISOString(),
+          };
+        });
+      }
+    },
   };
 });

@@ -94,55 +94,58 @@ export function connectToMinerAPI(
         }
       };
 
- socket.onmessage = (event) => {
-  try {
-    const rawData = JSON.parse(event.data);
+      socket.onmessage = (event) => {
+        try {
+          const rawData = JSON.parse(event.data);
 
-    if (rawData.error) {
-      toast.error(`Error del servidor: ${rawData.error}`);
-      // NO limpiar el estado si hay error
-      return;
-    }
+          if (rawData.error) {
+            toast.error(`Error del servidor: ${rawData.error}`);
+            // NO limpiar el estado si hay error
+            return;
+          }
 
-    const frontendIPs = getFrontendIPs();
+          const frontendIPs = getFrontendIPs();
 
-    if (!Array.isArray(rawData.miners)) {
-      // NO limpiar el estado si la respuesta no tiene mineros
-      return;
-    }
+          if (!Array.isArray(rawData.miners)) {
+            // NO limpiar el estado si la respuesta no tiene mineros
+            return;
+          }
 
-    const filteredMiners = rawData.miners.filter(miner => frontendIPs.includes(miner.ip));
-    const rejectedMiners = rawData.miners.filter(miner => miner.status === 'rejected');
-    if (rejectedMiners.length > 0) {
-      rejectedMiners.forEach(miner => {
-        toast.error(`Error en IP ${miner.ip}: ${miner.data.error}`);
-      });
-    }
+          const filteredMiners = rawData.miners.filter(miner => frontendIPs.includes(miner.ip));
+          const rejectedMiners = rawData.miners.filter(miner => miner.status === 'rejected');
+          if (rejectedMiners.length > 0) {
+            rejectedMiners.forEach(miner => {
+              toast.error(`Error en IP ${miner.ip}: ${miner.data.error}`);
+            });
+          }
 
-    const data: MinerApiResponse = {
-      ...rawData,
-      cycleId: rawData.cycleId || rawData.timestamp || Date.now().toString(),
-      miners: filteredMiners.map((miner) => ({
-        ...miner,
-        ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
-      })),
-    };
+          const data: MinerApiResponse = {
+            ...rawData,
+            cycleId: rawData.cycleId || rawData.timestamp || Date.now().toString(),
+            miners: filteredMiners.map((miner) => ({
+              ...miner,
+              ip: miner.ip || `unknown-${Math.random().toString(36).slice(2)}`,
+            })),
+          };
 
-    // SIEMPRE actualiza el timestamp, pero solo actualiza los mineros si hay nuevos
-    if (data.miners.length > 0) {
-      useMinerStore.getState().updateMiners(data);
-      callbacks.forEach((cb) => cb(data));
-    } else {
-      // Solo actualiza el timestamp para que la UI sepa que hubo ciclo, pero no borra mineros
-      useMinerStore.setState((state) => ({
-        ...state,
-        timestamp: data.timestamp || new Date().toISOString(),
-      }));
-    }
-  } catch (error) {
-    console.error('Error procesando mensaje del WebSocket:', error);
-  }
-};
+          // Acumulación de lotes: usa batchIndex y totalBatches del backend
+          const batchIndex = rawData.batchIndex || 1;
+          const totalBatches = rawData.totalBatches || 1;
+
+          if (data.miners.length > 0) {
+            useMinerStore.getState().accumulateMinersBatch(data, batchIndex, totalBatches);
+            callbacks.forEach((cb) => cb(data));
+          } else {
+            // Solo actualiza el timestamp para que la UI sepa que hubo ciclo, pero no borra mineros
+            useMinerStore.setState((state) => ({
+              ...state,
+              timestamp: data.timestamp || new Date().toISOString(),
+            }));
+          }
+        } catch (error) {
+          console.error('Error procesando mensaje del WebSocket:', error);
+        }
+      };
 
       socket.onclose = (event) => {
         setTimeout(() => {
