@@ -11,21 +11,29 @@ export const useMinerStore = create((set, get) => {
     timestamp: new Date().toISOString(),
    updateMiners: (data) => {
   set((state) => {
+    // Normaliza todas las IPs a minúsculas y usa 'ip' como clave
+    const normalizeIp = (ip) => (ip || "").trim().toLowerCase();
+
     // Crear un mapa de mineros existentes para actualizaciones eficientes
-    const minerMap = new Map(state.miners.map((m) => [m.ip, m]));
+    const minerMap = new Map(
+      state.miners.map((m) => [normalizeIp(m.ip || m.IP), m])
+    );
 
     // Actualizar o añadir mineros del lote actual
     data.miners.forEach((apiMiner) => {
       const minerData = {
         ...apiMiner.data,
-        ip: apiMiner.ip,
+        ip: apiMiner.ip || apiMiner.IP,
         status: apiMiner.status,
-        error: apiMiner.status === 'rejected' ? apiMiner.data?.error || 'No se pudo conectar' : apiMiner.data?.error,
+        error:
+          apiMiner.status === "rejected"
+            ? apiMiner.data?.error || "No se pudo conectar"
+            : apiMiner.data?.error,
       };
 
-      // Actualizar o añadir el minero en el mapa
-      minerMap.set(minerData.ip, {
-        ...minerMap.get(minerData.ip), // Preservar datos existentes
+      const key = normalizeIp(minerData.ip);
+      minerMap.set(key, {
+        ...minerMap.get(key), // Preservar datos existentes
         ...minerData, // Sobrescribir con nuevos datos
       });
     });
@@ -34,8 +42,8 @@ export const useMinerStore = create((set, get) => {
     const updatedMiners = Array.from(minerMap.values());
 
     // Guardar en localStorage
-    localStorage.setItem('miners', JSON.stringify(updatedMiners));
-    localStorage.setItem('miners_timestamp', new Date().toISOString());
+    localStorage.setItem("miners", JSON.stringify(updatedMiners));
+    localStorage.setItem("miners_timestamp", new Date().toISOString());
 
     return {
       miners: updatedMiners,
