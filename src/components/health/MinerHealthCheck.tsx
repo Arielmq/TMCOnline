@@ -59,7 +59,7 @@ const MinerHealthCheck = () => {
   const { data } = useMinerApi();
   const [selectedMiner, setSelectedMiner] = useState<MinerData | null>(null);
 
-  // Relaciona los datos del WebSocket con la configuración para saber ubicación y panel
+  // Recorrer TODOS los mineros definidos por el usuario
   const minersWithIssues: {
     miner: MinerData;
     location: string;
@@ -67,41 +67,49 @@ const MinerHealthCheck = () => {
     issues: string[];
   }[] = [];
 
-  if (data?.miners?.length && locations?.length) {
-    data.miners.forEach((apiMiner) => {
-      if (apiMiner.status !== "fulfilled" || !apiMiner.data) return;
-      const minerData = apiMiner.data;
-      // Buscar ubicación y panel por IP
-      let found = false;
-      locations.forEach((loc) => {
-        loc.panels.forEach((panel) => {
-          const miner = panel.miners.find((m) => m.IP === minerData.ip);
-          if (miner) {
-            // Mezcla datos de config + datos en vivo
-            const mergedMiner: MinerData = {
+  if (locations?.length) {
+    locations.forEach((loc) => {
+      loc.panels.forEach((panel) => {
+        panel.miners.forEach((miner) => {
+          if (!miner.IP || miner.IP.trim() === "") return;
+          // Buscar datos en tiempo real por IP
+          const apiMiner = data?.miners?.find(
+            (m) => m.ip === miner.IP && m.status === "fulfilled"
+          );
+          let mergedMiner: MinerData;
+          if (apiMiner && apiMiner.data) {
+            mergedMiner = {
               ...miner,
-              ...minerData,
-              THSAvg: minerData.summary?.hashrateAvg ?? 0,
-              EnvTemp: minerData.summary?.envTemp ?? 0,
-              MinerType: minerData.minerInfo?.minerType ?? miner.MinerType ?? "",
-              MACAddr: minerData.minerInfo?.macAddress ?? miner.MACAddr ?? "",
-              Status: minerData.summary?.hashrateAvg > 0 ? "Running" : "Stopped",
+              ...apiMiner.data,
+              THSAvg: apiMiner.data.summary?.hashrateAvg ?? 0,
+              EnvTemp: apiMiner.data.summary?.envTemp ?? 0,
+              MinerType: apiMiner.data.minerInfo?.minerType ?? miner.MinerType ?? "",
+              MACAddr: apiMiner.data.minerInfo?.macAddress ?? miner.MACAddr ?? "",
+              Status: apiMiner.data.summary?.hashrateAvg > 0 ? "Running" : "Stopped",
             };
-            if (mergedMiner.THSAvg === 0 || mergedMiner.Status === "Suspended") return;
-            const issues = identifyIssues(mergedMiner);
-            if (issues.length > 0) {
-              minersWithIssues.push({
-                miner: mergedMiner,
-                location: loc.name,
-                panel: panel.number,
-                issues,
-              });
-            }
-            found = true;
+          } else {
+            // Si no hay datos en tiempo real, marcar como sin datos
+            mergedMiner = {
+              ...miner,
+              THSAvg: 0,
+              EnvTemp: 0,
+              Status: "Offline",
+            };
+          }
+          // Si está suspendido, ignorar
+          if (mergedMiner.Status === "Suspended") return;
+          const issues = identifyIssues(mergedMiner);
+          // Mostrar si tiene issues o si está offline (sin datos)
+          if (issues.length > 0 || mergedMiner.Status === "Offline") {
+            minersWithIssues.push({
+              miner: mergedMiner,
+              location: loc.name,
+              panel: panel.number,
+              issues: issues.length > 0 ? issues : ["Sin datos en tiempo real"],
+            });
           }
         });
       });
-      // Si no está en la config, igual lo puedes mostrar (opcional)
     });
   }
 
