@@ -91,7 +91,7 @@
   align-items: stretch;
   justify-content: center;
   width: 100%;
-  max-width: 1500px;
+  max-width: 1100px;
   background: linear-gradient(120deg, rgba(36,36,36,0.82) 60%, rgba(36,36,36,0.28) 100%);
   border-radius: 18px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.13);
@@ -112,14 +112,6 @@
   overflow: hidden;
 }
 
-.contactTrial__img-box {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #181818;
-  filter:blur(50%)
-}
 
 .contactTrial__img-box {
   flex: 1;
@@ -131,14 +123,12 @@
   gap: 16px;
 }
 
-.contactTrial__img {
-  width: 100%;
-  max-width: 450px;
-  object-fit: contain;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
+.contactTrial__img-box video{
+width: max-content;
+border-radius: 10px;
 }
+
+
 
 .contactTrial__img--secondary {
   margin-top: 0;

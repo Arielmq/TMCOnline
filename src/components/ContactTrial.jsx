@@ -101,7 +101,9 @@ const ContactTrial = () => {
           </div>
         </div>
         <div className="contactTrial__img-box">
-         VIDEO
+
+        <video autoPlay muted playsInline loop src="https://res.cloudinary.com/dd6eoxgul/video/upload/v1749483568/video1_injir2.mp4"></video>
+
         </div>
       </div>
     </div>

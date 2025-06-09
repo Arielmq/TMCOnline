@@ -9,6 +9,7 @@ import Footer from '../components/Footer'
 import TokenSection from '../components/TokenSection'
 import GallerySection from '../components/GallerySection'
 import { useEffect, useState } from 'react'
+import Parthners from '../components/Parthners'
 
 function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -74,7 +75,7 @@ function Home() {
       </section>
       <section id="roadmap">
         <GallerySection />
-        <TokenSection />
+      <Parthners />
       </section>
       <Footer />
     </>
