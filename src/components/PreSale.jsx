@@ -47,7 +47,7 @@ const PreSale = () => {
               <ul>
                 {plan.features.map(f => <li key={f}>{f}</li>)}
               </ul>
-              <button className="preSale__plan-btn">Reserve</button>
+              <a  href="#contact"><button style={{padding:"10px"}} className="preSale__plan-btn">Reserve</button></a>
             </div>
           ))}
         </div>

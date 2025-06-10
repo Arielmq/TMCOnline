@@ -1,8 +1,9 @@
 
 import React from 'react';
 import '../styles/footer.css';
-import { Twitter, MessageCircle } from 'lucide-react';
-
+import MessageIcon from '@mui/icons-material/Message';
+import XIcon from '@mui/icons-material/X';
+import TelegramIcon from '@mui/icons-material/Telegram';
 const Footer = () => {
   return (
     <footer className="footer">
@@ -17,12 +18,19 @@ const Footer = () => {
             <ul className="footer__list footer__list--social">
               <li>
                 <a href="https://x.com/tmc__watch" target="_blank" rel="noopener noreferrer" className="footer__link footer__link--social" aria-label="X (formerly Twitter)">
-                  <Twitter className="footer__social-icon" />
+                  <XIcon className="footer__social-icon" />
                 </a>
               </li>
-              <li>
-                <a href="https://t.me/+lLCGbpem8MtkZGJh" target="_blank" rel="noopener noreferrer" className="footer__link footer__link--social" aria-label="Telegram">
-                  <MessageCircle className="footer__social-icon" />
+           
+               <li>
+                <a href="https://t.me/HashiraAI" target="_blank" rel="noopener noreferrer" className="footer__link footer__link--social" aria-label="Telegram">
+                 <TelegramIcon className="footer__social-icon" />
+                </a>
+              </li>
+
+                 <li>
+                <a href="#contact"  className="footer__link footer__link--social" aria-label="Telegram">
+                 <MessageIcon className="footer__social-icon" />
                 </a>
               </li>
             </ul>

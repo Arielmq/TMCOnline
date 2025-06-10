@@ -42,7 +42,7 @@ const ContactTrial = () => {
   }
 
   return (
-    <div className="contactTrial__container">
+    <div id='contact' className="contactTrial__container">
       <div className="contactTrial__content">
         <div className="contactTrial__box" style={{ position: 'relative', overflow: 'hidden' }}>
           <Particles
@@ -66,37 +66,43 @@ const ContactTrial = () => {
             {sent ? (
               <div className="contactTrial__success">Thank you! We will contact you soon.</div>
             ) : (
-              <form className="contactTrial__form" onSubmit={handleSubmit}>
-                <input
-                  className="contactTrial__input"
-                  type="text"
-                  name="name"
-                  placeholder="Your Name"
-                  value={form.name}
-                  onChange={handleChange}
-                  required
-                />
-                <input
-                  className="contactTrial__input"
-                  type="email"
-                  name="email"
-                  placeholder="Your Email"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                />
-                <textarea
-                  className="contactTrial__input"
-                  name="message"
-                  placeholder="Tell us about your mining farm (optional)"
-                  value={form.message}
-                  onChange={handleChange}
-                  rows={3}
-                />
-                <button className="contactTrial__button" type="submit">
-                  Request Trial
-                </button>
-              </form>
+// ...existing code...
+<form className="contactTrial__form" onSubmit={handleSubmit}>
+  <input
+    className="contactTrial__input"
+    type="text"
+    name="name"
+    placeholder="Your Name"
+    value={form.name}
+    onChange={handleChange}
+    required
+  />
+  <input
+    className="contactTrial__input"
+    type="email"
+    name="email"
+    placeholder="Your Email"
+    value={form.email}
+    onChange={handleChange}
+    required
+  />
+  <textarea
+    className="contactTrial__input"
+    name="message"
+    placeholder="Tell us about your mining farm (optional)"
+    value={form.message}
+    onChange={handleChange}
+    rows={3}
+  />
+  {sent ? (
+    <div className="contactTrial__submitted">Form submitted</div>
+  ) : (
+    <button className="contactTrial__button" type="submit">
+      Request Trial
+    </button>
+  )}
+</form>
+// ...existing code...
             )}
           </div>
         </div>
