@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { FaCopy, FaExternalLinkAlt } from 'react-icons/fa'
 import './TokenSection.css'
 
-const CONTRACT = "0x1234567890abcdef1234567890abcdef12345678"
+const CONTRACT = "58UetGQmMRrkg6gS8cLzdeznMD-HhVob7ved5siAMiBLV"
 const COIN_URL = "https://yourcoinwebsite.com"
 
 const TokenSection = () => {

@@ -72,11 +72,14 @@ function Home() {
         <HowItWorks />
         <Contact />
         <PreSale />
+     
       </section>
       <section id="roadmap">
         <GallerySection />
+        
       <Parthners />
       </section>
+         <TokenSection />
       <Footer />
     </>
   )
